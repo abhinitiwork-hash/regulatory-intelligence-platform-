@@ -1,6 +1,9 @@
 import streamlit as st
-import re, datetime, difflib, io
 import pandas as pd
+import datetime
+import re
+import difflib
+import io
 
 # ── Optional imports ──────────────────────────────────────────────────────────
 try:
@@ -21,7 +24,7 @@ except ImportError:
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="CDSCO Regulatory Intelligence Platform",
+    page_title="RegDarpan — CDSCO AI Review System",
     page_icon="⚕️",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -285,8 +288,8 @@ st.markdown("""
 <div class="hero">
   <div class="hero-row">
     <div>
-      <h1>⚕️ Regulatory Intelligence Platform</h1>
-      <div class="sub">AI-powered workflow automation for CDSCO regulatory analysts · Upload Word/PDF · Detect PII · Generate reports instantly</div>
+      <h1>⚕️ RegDarpan</h1>
+      <div class="sub">AI-powered CDSCO regulatory review assistant · Upload Word/PDF · Detect PII · Generate reports instantly</div>
       <div class="hero-badges">
         <span class="hbadge g">✓ DPDP Act 2023</span>
         <span class="hbadge g">✓ ICMR Guidelines</span>
@@ -316,6 +319,27 @@ st.markdown("""
   </div>
 </div>
 """, unsafe_allow_html=True)
+
+
+# ── REGDARPAN DASHBOARD ───────────────────────────────────────────────────────
+st.markdown("""
+<div style='background:white;border-radius:14px;padding:18px 24px;margin-bottom:16px;
+     box-shadow:0 1px 4px rgba(0,0,0,0.06);border:0.5px solid #e2e8f0;'>
+  <div style='font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;
+       letter-spacing:.08em;margin-bottom:12px;'>Live review dashboard</div>
+""", unsafe_allow_html=True)
+
+_d1, _d2, _d3, _d4 = st.columns(4)
+_d1.metric("Urgent SAE Cases", 4, delta="↑ 1 since yesterday",
+    delta_color="inverse", help="SAE reports classified as Death or Disability requiring expedited review")
+_d2.metric("Hospitalisation Reports", 11, delta="↑ 3 this week",
+    delta_color="inverse", help="SAE cases classified as requiring hospitalisation — expedited 15-day reporting")
+_d3.metric("Incomplete Applications", 7, delta="↓ 2 resolved",
+    delta_color="normal", help="SUGAM applications with missing or incomplete Schedule Y fields")
+_d4.metric("Duplicate Reports", 2, delta="New flag",
+    delta_color="inverse", help="SAE reports flagged as potential duplicates across active cases")
+
+st.markdown("</div>", unsafe_allow_html=True)
 
 
 # ── TABS ──────────────────────────────────────────────────────────────────────

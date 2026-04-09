@@ -374,6 +374,7 @@ with t1:
             st.error(f"Extraction error: {err}")
         elif txt.strip():
             st.session_state["anon_text"] = txt
+            st.session_state["anon_textarea"] = txt
             st.success(f"✓ Extracted **{len(txt.split())} words** from {anon_file.name}")
         else:
             st.warning("File uploaded but no text could be extracted.")
@@ -384,13 +385,11 @@ with t1:
     # The key trick: we DON'T use value= here. We use st.session_state directly.
     anon_input = st.text_area(
         "Document content",
-        value=st.session_state["anon_text"],
         height=220,
         placeholder="Paste SAE report, clinical trial document, or any regulatory text with PII/PHI...",
         key="anon_textarea"
     )
-    # Sync manual edits back to session state
-    st.session_state["anon_text"] = anon_input
+    st.session_state["anon_text"] = st.session_state.get("anon_textarea", "")
     st.markdown('</div>', unsafe_allow_html=True)
 
     col1,col2,_ = st.columns([1,1,3])
@@ -399,6 +398,7 @@ with t1:
     with col2:
         if st.button("🗑 Clear", use_container_width=True):
             st.session_state["anon_text"] = ""
+            st.session_state["anon_textarea"] = ""
             st.rerun()
 
     if run_anon:
@@ -481,24 +481,28 @@ with t2:
             audio_mode = True
             st.success(f"✓ Audio received: {sum_file.name} ({round(sum_file.size/1024)} KB)")
             st.session_state["sum_text"] = f"[AUDIO: {sum_file.name}]\nPaste transcript below if available."
+            st.session_state["sum_ta"] = st.session_state["sum_text"]
         else:
             txt, err = extract_text(sum_file)
             if err: st.error(err)
             elif txt.strip():
                 st.session_state["sum_text"] = txt
+                st.session_state["sum_ta"] = txt
                 st.success(f"✓ Extracted {len(txt.split())} words from {sum_file.name}")
 
     st.markdown('<div class="or-line">or paste text manually</div>', unsafe_allow_html=True)
-    sum_input = st.text_area("Document content", value=st.session_state["sum_text"],
+    sum_input = st.text_area("Document content",
         height=200, placeholder="Paste document content here...", key="sum_ta")
-    st.session_state["sum_text"] = sum_input
+    st.session_state["sum_text"] = st.session_state.get("sum_ta", "")
     st.markdown('</div>', unsafe_allow_html=True)
 
     col1,col2,_ = st.columns([1,1,3])
     with col1: run_sum = st.button("📄 Summarise", type="primary", use_container_width=True)
     with col2:
         if st.button("🗑 Clear ", use_container_width=True):
-            st.session_state["sum_text"]=""; st.rerun()
+            st.session_state["sum_text"]=""
+            st.session_state["sum_ta"]=""
+            st.rerun()
 
     if run_sum:
         content = st.session_state["sum_text"].strip()
@@ -594,10 +598,13 @@ with t3:
         if cf:
             txt,err=extract_text(cf)
             if err: st.error(err)
-            elif txt.strip(): st.session_state["comp_text"]=txt; st.success(f"✓ Extracted from {cf.name}")
+            elif txt.strip():
+                st.session_state["comp_text"]=txt
+                st.session_state["comp_ta"]=txt
+                st.success(f"✓ Extracted from {cf.name}")
         st.markdown('<div class="or-line">or paste text</div>',unsafe_allow_html=True)
-        ci=st.text_area("Application content",value=st.session_state["comp_text"],height=180,key="comp_ta")
-        st.session_state["comp_text"]=ci
+        ci=st.text_area("Application content",height=180,key="comp_ta")
+        st.session_state["comp_text"]=st.session_state.get("comp_ta","")
         st.markdown('</div>',unsafe_allow_html=True)
     with col_b:
         app_id=st.text_input("Application ID",placeholder="SUGAM-CT-2024-0892")
@@ -672,11 +679,12 @@ with t4:
         if err: st.error(err)
         elif txt.strip():
             st.session_state["class_text"]=txt
+            st.session_state["class_ta"]=txt
             st.session_state["dup_files"]["SAE-1"]={"name":cf.name,"text":txt}
             st.success(f"✓ Loaded: {cf.name}")
     st.markdown('<div class="or-line">or paste text</div>',unsafe_allow_html=True)
-    ci=st.text_area("SAE report content",value=st.session_state["class_text"],height=180,key="class_ta")
-    st.session_state["class_text"]=ci
+    ci=st.text_area("SAE report content",height=180,key="class_ta")
+    st.session_state["class_text"]=st.session_state.get("class_ta","")
     st.markdown('</div>',unsafe_allow_html=True)
 
     # Additional SAEs for duplicate check
@@ -773,18 +781,24 @@ with t5:
         v1f=st.file_uploader("Upload V1",type=["docx","pdf","txt"],key="v1f")
         if v1f:
             t,e=extract_text(v1f)
-            if not e and t.strip(): st.session_state["v1_text"]=t; st.success(f"✓ {v1f.name}")
-        v1=st.text_area("or paste V1",value=st.session_state["v1_text"],height=200,key="v1ta",placeholder="Original document...")
-        st.session_state["v1_text"]=v1
+            if not e and t.strip():
+                st.session_state["v1_text"]=t
+                st.session_state["v1ta"]=t
+                st.success(f"✓ {v1f.name}")
+        v1=st.text_area("or paste V1",height=200,key="v1ta",placeholder="Original document...")
+        st.session_state["v1_text"]=st.session_state.get("v1ta","")
 
     with col_v2:
         st.markdown("**Version 2 — Updated**")
         v2f=st.file_uploader("Upload V2",type=["docx","pdf","txt"],key="v2f")
         if v2f:
             t,e=extract_text(v2f)
-            if not e and t.strip(): st.session_state["v2_text"]=t; st.success(f"✓ {v2f.name}")
-        v2=st.text_area("or paste V2",value=st.session_state["v2_text"],height=200,key="v2ta",placeholder="Updated document...")
-        st.session_state["v2_text"]=v2
+            if not e and t.strip():
+                st.session_state["v2_text"]=t
+                st.session_state["v2ta"]=t
+                st.success(f"✓ {v2f.name}")
+        v2=st.text_area("or paste V2",height=200,key="v2ta",placeholder="Updated document...")
+        st.session_state["v2_text"]=st.session_state.get("v2ta","")
 
     col1,col2,_=st.columns([1,1,3])
     with col1: run_c5=st.button("🔍 Compare",type="primary",use_container_width=True)

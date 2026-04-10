@@ -402,6 +402,7 @@ with t1:
         elif txt.strip():
             st.session_state["anon_text"] = txt
             st.session_state["anon_textarea"] = txt
+            st.session_state["anon_upload_name"] = anon_file.name
             st.success(f"✓ Extracted **{len(txt.split())} words** from {anon_file.name}")
         else:
             st.warning("File uploaded but no text could be extracted.")
@@ -436,7 +437,7 @@ with t1:
             with st.spinner("Detecting PII/PHI entities..."):
                 result = run_anonymisation(content)
 
-            # PII chips
+            # ── PII chips — always true, always visible ─────────────────
             if result["types"]:
                 chips = '<div class="pii-chips">'
                 for pt in result["types"]:
@@ -447,37 +448,249 @@ with t1:
             else:
                 st.markdown('<div class="rc info">No PII/PHI patterns detected in this text.</div>', unsafe_allow_html=True)
 
-            # Step 1
-            st.markdown('<div class="step-pill">✓ Reversible version — identifiers replaced with codes</div>', unsafe_allow_html=True)
-            with st.expander("Reversible version — what was replaced with codes", expanded=False):
-                st.text_area("Step 1 output", result["step1"], height=160, key="s1o")
-                if result["tokens"]:
-                    st.markdown("**Token Mapping Table** — reversible at this stage")
+            # ── Two-column parallel layout ────────────────────────────────────
+            import json as _json
+            _fname = st.session_state.get("anon_upload_name", "document")
+            _base  = _fname.rsplit(".", 1)[0] if "." in _fname else _fname
+            _now   = datetime.datetime.now().isoformat()
+            _tokens_df  = pd.DataFrame(result["tokens"]) if result["tokens"] else pd.DataFrame(columns=["Token","Original Value","Entity Type","Step"])
+            _audit_df   = pd.DataFrame(result["audit"])
+
+            col_s1, col_s2 = st.columns(2, gap="large")
+
+            # ── LEFT COLUMN — Step 1 ─────────────────────────────────────────
+            with col_s1:
+                st.markdown("""
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                  <span style="background:#003087;color:white;border-radius:20px;padding:3px 12px;font-size:11px;font-weight:600;">Step 1 — Reversible pseudonymisation</span>
+                  <span style="font-size:11px;color:#64748b;">Identifiers replaced with codes · Can be reversed by authorised personnel</span>
+                </div>
+                """, unsafe_allow_html=True)
+                st.text_area("", result["step1"], height=280, key="s1o", label_visibility="collapsed")
+
+                # Step 1 downloads — selectbox approach (reliable in Streamlit)
+                st.markdown("<div style='margin:8px 0 4px;font-size:12px;font-weight:600;color:#1e293b;'>Download deidentified report</div>", unsafe_allow_html=True)
+                s1_fmt = st.selectbox("", ["Select format ▾", "Token Registry (JSON)", "Pseudonymised Document (TXT)", "Deidentified Report (TXT)"],
+                    key="s1_dl_fmt", label_visibility="collapsed")
+
+                if s1_fmt == "Token Registry (JSON)":
+                    _tok_json = _json.dumps({
+                        "document": _fname,
+                        "generatedAt": _now,
+                        "note": "In production, this file should be AES-256 encrypted at rest.",
+                        "mappings": [{"token": r["Token"], "originalValue": r["Original Value"],
+                                      "entityType": r["Entity Type"], "step": 1}
+                                     for r in result["tokens"]]
+                    }, indent=2)
+                    st.download_button("⬇ Download Token Registry (JSON)", _tok_json,
+                        file_name=f"{_base}_TokenRegistry.json", mime="application/json", use_container_width=True)
+
+                elif s1_fmt == "Pseudonymised Document (TXT)":
+                    _nl = chr(10)
+                    _sep = "="*60
+                    _pseudo_txt = _nl.join([
+                        "PSEUDONYMISED - NOT FOR PUBLIC RELEASE",
+                        f"Generated: {_now}",
+                        f"Document: {_fname}",
+                        _sep, "",
+                        result["step1"]
+                    ])
+                    st.download_button("⬇ Download Pseudonymised Document (TXT)", _pseudo_txt,
+                        file_name=f"{_base}_Pseudonymised.txt", mime="text/plain", use_container_width=True)
+
+                elif s1_fmt == "Deidentified Report (TXT)":
+                    _rows = chr(10).join([f"  {r['Entity Type']:<22} | {r['Original Value']:<25} | {r['Token']}"
+                                       for r in result["tokens"]])
+                    _nl2 = chr(10)
+                    _s1 = "="*60; _s2 = "-"*75
+                    _dei_txt = _nl2.join([
+                        "RegDarpan - Deidentified Report",
+                        f"Generated: {_now}", f"Document: {_fname}",
+                        _s1, "",
+                        "Field                  | Raw Data                  | Pseudonymised Token",
+                        _s2, _rows
+                    ])
+                    st.download_button("⬇ Download Deidentified Report (TXT)", _dei_txt,
+                        file_name=f"{_base}_Deidentified_Report.txt", mime="text/plain", use_container_width=True)
+
+                # Token mapping table
+                with st.expander("Token mapping table — reversible at this stage", expanded=False):
                     st.markdown('<div class="tw">', unsafe_allow_html=True)
-                    st.dataframe(pd.DataFrame(result["tokens"]), use_container_width=True, hide_index=True)
+                    st.dataframe(_tokens_df, use_container_width=True, hide_index=True)
                     st.markdown('</div>', unsafe_allow_html=True)
 
-            # Step 2
-            st.markdown('<div class="step-pill s2">✓ Step 2 — Irreversible Generalisation</div>', unsafe_allow_html=True)
-            with st.expander("Final anonymised output — safe to share", expanded=True):
-                st.text_area("Final anonymised text", result["step2"], height=160, key="s2o")
+            # ── RIGHT COLUMN — Step 2 ────────────────────────────────────────
+            with col_s2:
+                st.markdown("""
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                  <span style="background:#0f766e;color:white;border-radius:20px;padding:3px 12px;font-size:11px;font-weight:600;">Step 2 — Irreversible generalisation</span>
+                  <span style="font-size:11px;color:#64748b;">All identifiers permanently removed · Safe to share externally</span>
+                </div>
+                """, unsafe_allow_html=True)
+                st.text_area("", result["step2"], height=280, key="s2o", label_visibility="collapsed")
 
-            # Audit log
-            with st.expander("Technical audit log (DPDP Act 2023 compliance record)", expanded=False):
-                st.markdown('<div class="tw">', unsafe_allow_html=True)
-                st.dataframe(pd.DataFrame(result["audit"]), use_container_width=True, hide_index=True)
-                st.markdown('</div>', unsafe_allow_html=True)
+                # Step 2 downloads
+                st.markdown("<div style='margin:8px 0 4px;font-size:12px;font-weight:600;color:#1e293b;'>Download anonymised report</div>", unsafe_allow_html=True)
+                s2_fmt = st.selectbox("", ["Select format ▾", "Anonymised Report (TXT)", "Generalised Data (JSON)", "Audit Trail (JSON)"],
+                    key="s2_dl_fmt", label_visibility="collapsed")
 
-            report = (
-                f"CDSCO ANONYMISATION REPORT\nGenerated: {datetime.datetime.now()}\n\n"
-                f"=== ORIGINAL ===\n{content}\n\n"
-                f"=== STEP 1: PSEUDONYMISED ===\n{result['step1']}\n\n"
-                f"=== STEP 2: FINAL ANONYMISED ===\n{result['step2']}\n\n"
-                f"=== TOKEN MAP ===\n{pd.DataFrame(result['tokens']).to_string()}\n\n"
-                f"=== AUDIT LOG ===\n{pd.DataFrame(result['audit']).to_string()}"
-            )
-            st.download_button("⬇ Download Anonymisation Report",
-                report, file_name=f"anonymisation_{datetime.date.today()}.txt", mime="text/plain")
+                if s2_fmt == "Anonymised Report (TXT)":
+                    _anon_rows = chr(10).join([f"  {r['Entity Type']:<22} | {r['Token']:<25} | [GENERALISED/REDACTED]"
+                                            for r in result["tokens"]])
+                    _nl = chr(10)
+                    _sep3 = "="*60
+                    _sep4 = "-"*75
+                    _anon_txt = _nl.join([
+                        "RegDarpan - Anonymised Report",
+                        f"Generated: {_now}",
+                        f"Document: {_fname}",
+                        _sep3, "",
+                        "Field                  | Pseudonymised             | Anonymised Output",
+                        _sep4,
+                        _anon_rows,
+                        "", _sep3,
+                        "Final Anonymised Text:", "",
+                        result["step2"]
+                    ])
+                    st.download_button("⬇ Download Anonymised Report (TXT)", _anon_txt,
+                        file_name=f"{_base}_Anonymised_Report.txt", mime="text/plain", use_container_width=True)
+
+                elif s2_fmt == "Generalised Data (JSON)":
+                    _gen_json = _json.dumps({
+                        "document": _fname,
+                        "generatedAt": _now,
+                        "note": "Structure is XML-serialisable for SUGAM portal integration.",
+                        "anonymisedFields": [{"field": r["Entity Type"],
+                                              "pseudonymisedValue": r["Token"],
+                                              "anonymisedValue": "[GENERALISED/REDACTED]",
+                                              "method": "Generalisation" if "Date" in r["Entity Type"] or "Age" in r["Entity Type"] else "Redaction"}
+                                             for r in result["tokens"]]
+                    }, indent=2)
+                    st.download_button("⬇ Download Generalised Data (JSON)", _gen_json,
+                        file_name=f"{_base}_Generalised.json", mime="application/json", use_container_width=True)
+
+                elif s2_fmt == "Audit Trail (JSON)":
+                    _step1_entries = [{"timestamp": _now, "entityType": r["Entity Type"],
+                                       "action": "Pseudonymisation", "token": r["Token"],
+                                       "reversible": True, "step": 1}
+                                      for r in result["tokens"]]
+                    _step2_entries = [{"timestamp": _now, "entityType": r["Entity Type"],
+                                       "action": "Irreversible Generalisation",
+                                       "outputValue": "[GENERALISED/REDACTED]",
+                                       "reversible": False, "step": 2}
+                                      for r in result["tokens"]]
+                    _audit_json = _json.dumps({
+                        "document": _fname,
+                        "generatedAt": _now,
+                        "complianceFrameworks": ["DPDP Act 2023", "ICMR Ethical Guidelines", "CDSCO Standards"],
+                        "auditEntries": _step1_entries + _step2_entries
+                    }, indent=2)
+                    st.download_button("⬇ Download Audit Trail (JSON)", _audit_json,
+                        file_name=f"{_base}_AuditTrail.json", mime="application/json", use_container_width=True)
+
+                # Audit log
+                with st.expander("Technical audit log (DPDP Act 2023 compliance record)", expanded=False):
+                    st.markdown('<div class="tw">', unsafe_allow_html=True)
+                    st.dataframe(_audit_df, use_container_width=True, hide_index=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
+
+            # ── jsPDF component — PDF generation client-side ──────────────────
+            import streamlit.components.v1 as _components
+            _tok_json_str = _json.dumps(result["tokens"])
+            _audit_json_str = _json.dumps(result["audit"])
+            import json as _json2
+            _js_step1 = _json2.dumps(result["step1"])
+            _pdf_component = f"""
+<!DOCTYPE html><html><head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<style>
+  body{{font-family:'Inter',system-ui,sans-serif;margin:0;padding:12px;background:#f8fafc;}}
+  .pdf-row{{display:flex;gap:12px;flex-wrap:wrap;}}
+  .pdf-btn{{cursor:pointer;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;border:none;display:flex;align-items:center;gap:6px;}}
+  .btn-red{{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;}}
+  .btn-red:hover{{background:#fecaca;}}
+  .btn-navy{{background:#003087;color:white;border:1px solid #003087;}}
+  .btn-navy:hover{{background:#002060;}}
+  .label{{font-size:11px;font-weight:700;color:#64748b;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em;}}
+</style>
+</head><body>
+<div class="label">PDF downloads (generated in browser)</div>
+<div class="pdf-row">
+  <button class="pdf-btn btn-red" onclick="genStep1PDF()">&#x1F4C4; Deidentified Report (PDF)</button>
+  <button class="pdf-btn btn-red" onclick="genPseudoDocPDF()">&#x1F4C4; Pseudonymised Document (PDF)</button>
+  <button class="pdf-btn btn-navy" onclick="genStep2PDF()">&#x1F4C4; Anonymised Report (PDF)</button>
+</div>
+<script>
+const tokens = {_tok_json_str};
+const fname = "{_fname}";
+const base = fname.includes('.') ? fname.split('.').slice(0,-1).join('.') : fname;
+const now = new Date().toLocaleString('en-IN');
+
+function addHeader(doc, title, fname){{
+  doc.setFillColor(0,48,135);
+  doc.rect(0,0,210,18,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(10); doc.setFont(undefined,'bold');
+  doc.text('RegDarpan — CDSCO Regulatory Intelligence Platform',10,7);
+  doc.setFontSize(8); doc.setFont(undefined,'normal');
+  doc.text(title,10,13);
+  doc.text('Generated: '+now,150,13);
+  doc.setTextColor(0,0,0);
+}}
+
+function genStep1PDF(){{
+  const {{jsPDF}} = window.jspdf;
+  const doc = new jsPDF();
+  addHeader(doc,'Deidentified Report — '+fname,fname);
+  doc.setFontSize(9);
+  doc.text('Field-by-field comparison of raw data and pseudonymised tokens:',10,25);
+  const rows = tokens.map(t=>[t['Entity Type'],t['Original Value'],t.Token]);
+  doc.autoTable({{
+    head:[['Field','Raw Data','Pseudonymised Token']],
+    body:rows,startY:28,
+    styles:{{fontSize:8,cellPadding:3}},
+    headStyles:{{fillColor:[0,48,135],textColor:255,fontStyle:'bold'}},
+    alternateRowStyles:{{fillColor:[240,244,248]}},
+    margin:{{left:10,right:10}}
+  }});
+  doc.save(base+'_Deidentified_Report.pdf');
+}}
+
+function genPseudoDocPDF(){{
+  const {{jsPDF}} = window.jspdf;
+  const doc = new jsPDF();
+  addHeader(doc,'PSEUDONYMISED — NOT FOR PUBLIC RELEASE',fname);
+  doc.setFontSize(8);
+      const step1Text = {_js_step1};
+  const lines = doc.splitTextToSize(step1Text,190);
+  let y=28;
+  lines.forEach(l=>{{if(y>270){{doc.addPage();addHeader(doc,'PSEUDONYMISED — NOT FOR PUBLIC RELEASE',fname);y=28;}}doc.text(l,10,y);y+=4.5;}});
+  doc.setFontSize(7);doc.setTextColor(150,150,150);
+  doc.text('Generated: '+now+' | RegDarpan · CDSCO Regulatory Intelligence Platform',10,288);
+  doc.save(base+'_Pseudonymised.pdf');
+}}
+
+function genStep2PDF(){{
+  const {{jsPDF}} = window.jspdf;
+  const doc = new jsPDF();
+  addHeader(doc,'Anonymised Report — '+fname,fname);
+  doc.setFontSize(9);
+  doc.text('Before/after comparison: pseudonymised tokens vs final anonymised output:',10,25);
+  const rows = tokens.map(t=>[t['Entity Type'],t.Token,'[GENERALISED/REDACTED]']);
+  doc.autoTable({{
+    head:[['Field','Pseudonymised (Step 1)','Anonymised Output (Step 2)']],
+    body:rows,startY:28,
+    styles:{{fontSize:8,cellPadding:3}},
+    headStyles:{{fillColor:[15,118,110],textColor:255,fontStyle:'bold'}},
+    alternateRowStyles:{{fillColor:[240,248,246]}},
+    margin:{{left:10,right:10}}
+  }});
+  doc.save(base+'_Anonymised_Report.pdf');
+}}
+</script>
+</body></html>"""
+            _components.html(_pdf_component, height=80)
 
 
 # ═══ FEATURE 2 — SUMMARISATION ═══════════════════════════════════════════════

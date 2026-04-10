@@ -99,7 +99,7 @@ section[data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"]{backgrou
 
 .feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
 .fc{background:white;border-radius:14px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,0.06);border-top:3px solid #003087;}
-.fc.f2{border-top-color:#0f766e;}.fc.f3{border-top-color:#6d28d9;}
+.fc.f1{border-top-color:#003087;}.fc.f2{border-top-color:#0f766e;}.fc.f3{border-top-color:#6d28d9;}
 .fc.f4{border-top-color:#b45309;}.fc.f5{border-top-color:#0369a1;}.fc.f6{border-top-color:#be185d;}
 .fc .fi{font-size:24px;margin-bottom:6px;}.fc .fn{font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;}
 .fc .ft{font-size:13px;font-weight:600;color:#1e293b;margin:4px 0 3px;}.fc .fd{font-size:11px;color:#64748b;line-height:1.5;}
@@ -303,66 +303,88 @@ with st.sidebar:
 # ── HEADER ────────────────────────────────────────────────────────────────────
 st.markdown("""
 <div class="glass">
-  <div class="big-title">⚕️ RegDarpan</div>
-  <div class="subtitle">AI-powered CDSCO regulatory review assistant &nbsp;·&nbsp; DPDP Act 2023 compliant &nbsp;·&nbsp; Schedule Y verified</div>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+    <div>
+      <div class="big-title">RegDarpan</div>
+      <div class="subtitle">AI-powered CDSCO regulatory review assistant</div>
+      <div style="margin-top:10px;font-size:12px;color:#003087;font-weight:500;">
+        CDSCO officers review thousands of regulatory documents manually.
+        RegDarpan automates the repetitive parts — so officers can focus on decisions, not paperwork.
+      </div>
+    </div>
+    <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:10px 16px;font-size:12px;color:#166534;font-weight:500;white-space:nowrap;align-self:flex-start;">
+      All processing is local<br>
+      <span style="font-weight:400;">No data leaves this platform</span>
+    </div>
+  </div>
 </div>
 """, unsafe_allow_html=True)
 
-
-# ── DASHBOARD ─────────────────────────────────────────────────────────────────
-st.markdown("<div style='font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;'>Live review dashboard</div>", unsafe_allow_html=True)
+# ── PLATFORM CAPABILITIES ─────────────────────────────────────────────────────
+st.markdown("<div style='font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;'>Platform capabilities</div>", unsafe_allow_html=True)
 _d1,_d2,_d3,_d4 = st.columns(4)
 with _d1:
-    st.markdown("""<div class="dash-card urgent"><h2>4</h2><p>Urgent SAE Cases</p></div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="dash-card"><h2 style="color:#003087;">8</h2><p>PII types detected automatically</p></div>""", unsafe_allow_html=True)
 with _d2:
-    st.markdown("""<div class="dash-card warn"><h2>11</h2><p>Hospitalisation Reports</p></div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="dash-card"><h2 style="color:#003087;">20</h2><p>Schedule Y fields verified</p></div>""", unsafe_allow_html=True)
 with _d3:
-    st.markdown("""<div class="dash-card info"><h2>7</h2><p>Incomplete Applications</p></div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="dash-card"><h2 style="color:#003087;">3</h2><p>Document types supported</p></div>""", unsafe_allow_html=True)
 with _d4:
-    st.markdown("""<div class="dash-card"><h2>2</h2><p>Duplicate Reports</p></div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="dash-card"><h2 style="color:#003087;">6</h2><p>AI-powered review features</p></div>""", unsafe_allow_html=True)
 st.markdown("<br>", unsafe_allow_html=True)
 
 
 # ── TABS ──────────────────────────────────────────────────────────────────────
 t0,t1,t2,t3,t4,t5,t6 = st.tabs([
-    "🏠 Home","🔒 Anonymisation","📄 Summarisation",
-    "✅ Completeness","🏷️ Classification","🔍 Comparison","📋 Inspection Report"
+    "Home","Anonymisation","Summarisation",
+    "Completeness","Classification","Comparison","Inspection Report"
 ])
 
 # ═══ HOME ════════════════════════════════════════════════════════════════════
 with t0:
-    st.markdown("""
-    <div class="feat-grid">
-      <div class="fc"><div class="fi">🔒</div><div class="fn">Feature 01</div>
-        <div class="ft">AI Data Anonymisation</div>
-        <div class="fd">Upload Word/PDF or paste text. Detects patient IDs, initials, investigator names, phone, Aadhaar, hospital record numbers. Two-step output with full audit log.</div></div>
-      <div class="fc f2"><div class="fi">📄</div><div class="fn">Feature 02</div>
-        <div class="ft">Document Summarisation</div>
-        <div class="fd">Handles SAE narrations, SUGAM checklists, and meeting transcripts. Audio file upload for meetings. Structured output per source type.</div></div>
-      <div class="fc f3"><div class="fi">✅</div><div class="fn">Feature 03</div>
-        <div class="ft">Completeness Assessment</div>
-        <div class="fd">Upload application documents. Verifies all 20 mandatory Schedule Y fields. RAG status per field. Automated approve/reject recommendation.</div></div>
-      <div class="fc f4"><div class="fi">🏷️</div><div class="fn">Feature 04</div>
-        <div class="ft">SAE Classification</div>
-        <div class="fd">Upload SAE reports. ICD-10 severity grading. Duplicate detection across session-stored files. Priority queue scoring for review.</div></div>
-      <div class="fc f5"><div class="fi">🔍</div><div class="fn">Feature 05</div>
-        <div class="ft">Document Comparison</div>
-        <div class="fd">Upload two filing versions. Semantic diff. Substantive vs administrative change detection. Colour-coded table. Downloadable report.</div></div>
-      <div class="fc f6"><div class="fi">📋</div><div class="fn">Feature 06</div>
-        <div class="ft">Inspection Report</div>
-        <div class="fd">Paste raw site observations. Converts to formal CDSCO GCP reports. Critical/Major/Minor grading with corrective action deadlines.</div></div>
-    </div>
-    <br><div class="rc info">Select any feature tab above. All processing is local — no data leaves this platform.</div>
-    """, unsafe_allow_html=True)
+    features = [
+        ("01", "Protect sensitive information",
+         "Upload any regulatory document. The system automatically finds and removes patient names, IDs, phone numbers, dates, and hospital records — and gives you a clean version safe to share.",
+         "Anonymisation", "f1"),
+        ("02", "Get a quick summary of any document",
+         "Upload an SAE report, SUGAM checklist, or meeting transcript. The system reads it and gives you a structured summary — decisions, action items, and key findings — in under a minute.",
+         "Summarisation", "f2"),
+        ("03", "Check if an application is complete",
+         "Upload a clinical trial application. The system checks all 20 mandatory Schedule Y fields and tells you what is present, what is missing, and whether to approve or return it.",
+         "Completeness", "f3"),
+        ("04", "Classify how serious an adverse event is",
+         "Upload an SAE report. The system tells you whether it is a death, disability, hospitalisation, or other case — and flags if the same case has already been reported.",
+         "Classification", "f4"),
+        ("05", "See what changed between two document versions",
+         "Upload an original and an updated filing. The system highlights every change and tells you which ones are significant for regulatory review and which are minor edits.",
+         "Comparison", "f5"),
+        ("06", "Turn inspection notes into a formal report",
+         "Paste raw observations from a site visit. The system converts them into a structured CDSCO inspection report with risk levels and corrective action deadlines.",
+         "Inspection Report", "f6"),
+    ]
+
+    cols = st.columns(3)
+    for i, (num, title, desc, tab_name, cls) in enumerate(features):
+        with cols[i % 3]:
+            st.markdown(f"""
+            <div class="fc {cls}" style="height:100%;cursor:default;">
+              <div style="font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:.1em;margin-bottom:8px;">{num}</div>
+              <div class="ft">{title}</div>
+              <div class="fd" style="margin-top:6px;margin-bottom:14px;">{desc}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            if st.button(f"Open — {tab_name} →", key=f"home_btn_{i}", use_container_width=True):
+                st.session_state["active_tab"] = i + 1
+                st.rerun()
 
 
 # ═══ FEATURE 1 — ANONYMISATION ═══════════════════════════════════════════════
 with t1:
     st.markdown("""
     <div class="sec-hd">
-      <div class="sec-ic ic-blue">🔒</div>
-      <div><h2>AI-Powered Data Anonymisation</h2>
-      <p>Detects PII/PHI · Two-step: Pseudonymisation → Irreversible Generalisation · DPDP Act 2023 audit log</p></div>
+      <div class="sec-ic ic-blue" style="font-size:14px;font-weight:700;color:#1e40af;">01</div>
+      <div><h2>Protect sensitive information in regulatory documents</h2>
+      <p>Finds and removes patient names, IDs, phone numbers, dates, and hospital records · Full compliance audit log · DPDP Act 2023</p></div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -399,7 +421,7 @@ with t1:
 
     col1,col2,_ = st.columns([1,1,3])
     with col1:
-        run_anon = st.button("🔒 Analyse & Anonymise", type="primary", use_container_width=True)
+        run_anon = st.button("Analyse & protect document", type="primary", use_container_width=True)
     with col2:
         if st.button("🗑 Clear", use_container_width=True):
             st.session_state["anon_text"] = ""
@@ -426,8 +448,8 @@ with t1:
                 st.markdown('<div class="rc info">No PII/PHI patterns detected in this text.</div>', unsafe_allow_html=True)
 
             # Step 1
-            st.markdown('<div class="step-pill">✓ Step 1 — Pseudonymisation</div>', unsafe_allow_html=True)
-            with st.expander("View pseudonymised text + token map", expanded=True):
+            st.markdown('<div class="step-pill">✓ Reversible version — identifiers replaced with codes</div>', unsafe_allow_html=True)
+            with st.expander("Reversible version — what was replaced with codes", expanded=False):
                 st.text_area("Step 1 output", result["step1"], height=160, key="s1o")
                 if result["tokens"]:
                     st.markdown("**Token Mapping Table** — reversible at this stage")
@@ -437,11 +459,11 @@ with t1:
 
             # Step 2
             st.markdown('<div class="step-pill s2">✓ Step 2 — Irreversible Generalisation</div>', unsafe_allow_html=True)
-            with st.expander("View final anonymised output", expanded=True):
+            with st.expander("Final anonymised output — safe to share", expanded=True):
                 st.text_area("Final anonymised text", result["step2"], height=160, key="s2o")
 
             # Audit log
-            with st.expander("📋 Compliance Audit Log (DPDP Act 2023)", expanded=False):
+            with st.expander("Technical audit log (DPDP Act 2023 compliance record)", expanded=False):
                 st.markdown('<div class="tw">', unsafe_allow_html=True)
                 st.dataframe(pd.DataFrame(result["audit"]), use_container_width=True, hide_index=True)
                 st.markdown('</div>', unsafe_allow_html=True)
@@ -502,7 +524,7 @@ with t2:
     st.markdown('</div>', unsafe_allow_html=True)
 
     col1,col2,_ = st.columns([1,1,3])
-    with col1: run_sum = st.button("📄 Summarise", type="primary", use_container_width=True)
+    with col1: run_sum = st.button("Summarise document", type="primary", use_container_width=True)
     with col2:
         if st.button("🗑 Clear ", use_container_width=True):
             st.session_state["sum_text"]=""

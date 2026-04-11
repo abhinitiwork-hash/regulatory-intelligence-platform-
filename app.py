@@ -24,7 +24,7 @@ except ImportError:
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="RegDarpan — CDSCO AI Review System",
+    page_title="Nirnay — CDSCO AI Review System",
     page_icon="⚕️",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -206,6 +206,10 @@ def run_anonymisation(text):
         found_types.add(etype)
 
     # FIX ORDER: run phone & IDs BEFORE dates to avoid digit consumption
+    # Email addresses
+    for m in re.finditer(r'[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}', processed):
+        t=tok("ID"); rec(t,m.group(),"Email Address")
+        processed=processed.replace(m.group(),t,1)
     # Hospital record #XXXXX
     for m in re.finditer(r'#\d{4,6}', processed):
         t=tok("HOSP_REC"); rec(t,m.group(),"Hospital Record No.")
@@ -257,6 +261,10 @@ def run_anonymisation(text):
         if m.group() in processed:
             t=tok("PATIENT"); rec(t,m.group(),"Patient Name")
             processed=processed.replace(m.group(),t,1)
+    # Study IDs: IND-CT-XXXX-XXXX format
+    for m in re.finditer(r'\bIND-[A-Z]{{2,4}}-\d{{4}}-\d{{3,6}}\b', processed):
+        t=tok("ID"); rec(t,m.group(),"Study ID")
+        processed=processed.replace(m.group(),t,1)
     # Pincode — run last to avoid consuming phone/ID digits
     for m in re.finditer(r'[1-9]\d{5}', processed):
         t=tok("ID"); rec(t,m.group(),"Pincode")
@@ -283,8 +291,9 @@ with st.sidebar:
     st.markdown("""
     <div style='text-align:center;padding:16px 0 10px;'>
     <div style='font-size:38px;'>⚕️</div>
-    <div style='font-weight:700;font-size:15px;color:white;margin-top:6px;'>CDSCO RIP</div>
-    <div style='font-size:11px;color:rgba(255,255,255,0.45);'>Regulatory Intelligence Platform</div>
+    <div style='font-weight:800;font-size:18px;color:white;margin-top:6px;letter-spacing:-0.3px;'>Nirnay</div>
+    <div style='font-size:10px;color:rgba(255,255,255,0.4);letter-spacing:.1em;text-transform:uppercase;margin-top:3px;'>CDSCO · AI Review System</div>
+    <div style='width:24px;height:2px;background:#FF9933;margin-top:8px;border-radius:1px;'></div>
     </div>
     <hr style='border-color:rgba(255,255,255,0.15);margin:10px 0;'>
     """, unsafe_allow_html=True)
@@ -302,36 +311,71 @@ with st.sidebar:
 
 # ── HEADER ────────────────────────────────────────────────────────────────────
 st.markdown("""
-<div class="glass">
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
-    <div>
-      <div class="big-title">RegDarpan</div>
-      <div class="subtitle">AI-powered CDSCO regulatory review assistant</div>
-      <div style="margin-top:10px;font-size:12px;color:#003087;font-weight:500;">
-        CDSCO officers review thousands of regulatory documents manually.
-        RegDarpan automates the repetitive parts — so officers can focus on decisions, not paperwork.
+<div style="background:#0a2240;border-radius:14px;padding:28px 32px;margin-bottom:16px;position:relative;overflow:hidden;">
+  <div style="position:absolute;right:20px;top:-10px;font-size:140px;font-weight:900;color:rgba(255,255,255,0.025);line-height:1;pointer-events:none;">N</div>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:20px;">
+    <div style="flex:1;">
+      <div style="font-size:10px;font-weight:700;color:#FF9933;letter-spacing:.14em;text-transform:uppercase;margin-bottom:8px;">CDSCO Regulatory Intelligence Platform</div>
+      <div style="font-size:26px;font-weight:800;color:white;letter-spacing:-0.4px;line-height:1.15;">Less paperwork.<br><span style="color:#FF9933;">More decisions.</span></div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.55);margin-top:10px;line-height:1.7;max-width:480px;">
+        From SUGAM submissions to SAE case resolution — Nirnay brings AI-powered precision to every stage of CDSCO's regulatory review workflow under the New Drugs and Clinical Trials Rules, 2019.
+        Nirnay handles the screening. Every decision gets the attention it deserves.
+      </div>
+      <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.25);border-radius:4px;padding:5px 12px;font-size:10px;color:#86efac;font-weight:600;margin-top:14px;">
+        <div style="width:5px;height:5px;border-radius:50%;background:#22c55e;flex-shrink:0;"></div>
+        All processing is local · No data leaves this platform
       </div>
     </div>
-    <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:10px 16px;font-size:12px;color:#166534;font-weight:500;white-space:nowrap;align-self:flex-start;">
-      All processing is local<br>
-      <span style="font-weight:400;">No data leaves this platform</span>
+    <div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0;">
+      <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px 18px;text-align:center;min-width:78px;">
+        <div style="font-size:24px;font-weight:800;color:#FF9933;line-height:1;">8</div>
+        <div style="font-size:9px;color:rgba(255,255,255,0.4);margin-top:3px;line-height:1.3;">PII types<br>detected</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px 18px;text-align:center;">
+        <div style="font-size:24px;font-weight:800;color:#FF9933;line-height:1;">20</div>
+        <div style="font-size:9px;color:rgba(255,255,255,0.4);margin-top:3px;line-height:1.3;">Schedule Y<br>fields</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px 18px;text-align:center;">
+        <div style="font-size:24px;font-weight:800;color:#FF9933;line-height:1;">6</div>
+        <div style="font-size:9px;color:rgba(255,255,255,0.4);margin-top:3px;line-height:1.3;">AI review<br>features</div>
+      </div>
     </div>
   </div>
 </div>
 """, unsafe_allow_html=True)
 
-# ── PLATFORM CAPABILITIES ─────────────────────────────────────────────────────
-st.markdown("<div style='font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;'>Platform capabilities</div>", unsafe_allow_html=True)
-_d1,_d2,_d3,_d4 = st.columns(4)
-with _d1:
-    st.markdown("""<div class="dash-card"><h2 style="color:#003087;">8</h2><p>PII types detected automatically</p></div>""", unsafe_allow_html=True)
-with _d2:
-    st.markdown("""<div class="dash-card"><h2 style="color:#003087;">20</h2><p>Schedule Y fields verified</p></div>""", unsafe_allow_html=True)
-with _d3:
-    st.markdown("""<div class="dash-card"><h2 style="color:#003087;">3</h2><p>Document types supported</p></div>""", unsafe_allow_html=True)
-with _d4:
-    st.markdown("""<div class="dash-card"><h2 style="color:#003087;">6</h2><p>AI-powered review features</p></div>""", unsafe_allow_html=True)
-st.markdown("<br>", unsafe_allow_html=True)
+# ── WORKFLOW STRIP ────────────────────────────────────────────────────────────
+st.markdown("""
+<div style="background:white;border-radius:10px;padding:14px 20px;margin-bottom:16px;border:0.5px solid #e2e8f0;">
+  <div style="font-size:9px;font-weight:700;color:#64748b;letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;">How Nirnay works — the review journey</div>
+  <div style="display:flex;align-items:flex-end;height:68px;gap:4px;">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;">
+      <div style="width:100%;height:20px;background:#dbeafe;border-radius:3px 3px 0 0;"></div>
+      <div style="font-size:9px;font-weight:600;color:#475569;text-align:center;margin-top:4px;line-height:1.3;">Upload<br>document</div>
+    </div>
+    <div style="color:#cbd5e1;font-size:12px;padding-bottom:20px;">›</div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;">
+      <div style="width:100%;height:33px;background:#93c5fd;border-radius:3px 3px 0 0;"></div>
+      <div style="font-size:9px;font-weight:600;color:#475569;text-align:center;margin-top:4px;line-height:1.3;">Anonymise<br>PII</div>
+    </div>
+    <div style="color:#cbd5e1;font-size:12px;padding-bottom:20px;">›</div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;">
+      <div style="width:100%;height:44px;background:#3b82f6;border-radius:3px 3px 0 0;"></div>
+      <div style="font-size:9px;font-weight:600;color:#475569;text-align:center;margin-top:4px;line-height:1.3;">AI<br>processes</div>
+    </div>
+    <div style="color:#cbd5e1;font-size:12px;padding-bottom:20px;">›</div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;">
+      <div style="width:100%;height:55px;background:#1d4ed8;border-radius:3px 3px 0 0;"></div>
+      <div style="font-size:9px;font-weight:600;color:#475569;text-align:center;margin-top:4px;line-height:1.3;">Validate<br>Schedule Y</div>
+    </div>
+    <div style="color:#cbd5e1;font-size:12px;padding-bottom:20px;">›</div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;">
+      <div style="width:100%;height:66px;background:#0a2240;border-radius:3px 3px 0 0;"></div>
+      <div style="font-size:9px;font-weight:700;color:#0a2240;text-align:center;margin-top:4px;line-height:1.3;">Decision<br>made</div>
+    </div>
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
 
 # ── TABS ──────────────────────────────────────────────────────────────────────
@@ -363,17 +407,21 @@ with t0:
          "Inspection Report", "f6"),
     ]
 
+    st.markdown("<div style='font-size:9px;font-weight:700;color:#64748b;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;'>Available features — select to begin</div>", unsafe_allow_html=True)
     cols = st.columns(3)
     for i, (num, title, desc, tab_name, cls) in enumerate(features):
         with cols[i % 3]:
             st.markdown(f"""
-            <div class="fc {cls}" style="height:100%;cursor:default;">
-              <div style="font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:.1em;margin-bottom:8px;">{num}</div>
-              <div class="ft">{title}</div>
-              <div class="fd" style="margin-top:6px;margin-bottom:14px;">{desc}</div>
+            <div style="background:#0a2240;border-radius:8px;padding:16px 18px;margin-bottom:4px;
+                 position:relative;overflow:hidden;border-left:3px solid #FF9933;">
+              <div style="position:absolute;right:12px;bottom:-4px;font-size:44px;font-weight:900;
+                   color:rgba(255,255,255,0.04);line-height:1;pointer-events:none;">{num}</div>
+              <div style="font-size:9px;font-weight:700;color:rgba(255,153,51,0.7);letter-spacing:.1em;margin-bottom:6px;">{num} · {tab_name.upper()}</div>
+              <div style="font-size:12px;font-weight:700;color:white;margin-bottom:5px;line-height:1.3;">{title}</div>
+              <div style="font-size:10px;color:rgba(255,255,255,0.45);line-height:1.5;margin-bottom:10px;">{desc}</div>
             </div>
             """, unsafe_allow_html=True)
-            if st.button(f"Open — {tab_name} →", key=f"home_btn_{i}", use_container_width=True):
+            if st.button(f"Open {tab_name} →", key=f"home_btn_{i}", use_container_width=True):
                 st.session_state["active_tab"] = i + 1
                 st.rerun()
 
@@ -504,7 +552,7 @@ with t1:
                     _nl2 = chr(10)
                     _s1 = "="*60; _s2 = "-"*75
                     _dei_txt = _nl2.join([
-                        "RegDarpan - Deidentified Report",
+                        "Nirnay — Deidentified Report",
                         f"Generated: {_now}", f"Document: {_fname}",
                         _s1, "",
                         "Field                  | Raw Data                  | Pseudonymised Token",
@@ -541,7 +589,7 @@ with t1:
                     _sep3 = "="*60
                     _sep4 = "-"*75
                     _anon_txt = _nl.join([
-                        "RegDarpan - Anonymised Report",
+                        "Nirnay — Anonymised Report",
                         f"Generated: {_now}",
                         f"Document: {_fname}",
                         _sep3, "",
@@ -632,7 +680,7 @@ function addHeader(doc, title, fname){{
   doc.rect(0,0,210,18,'F');
   doc.setTextColor(255,255,255);
   doc.setFontSize(10); doc.setFont(undefined,'bold');
-  doc.text('RegDarpan — CDSCO Regulatory Intelligence Platform',10,7);
+  doc.text('Nirnay — CDSCO AI Review System',10,7);
   doc.setFontSize(8); doc.setFont(undefined,'normal');
   doc.text(title,10,13);
   doc.text('Generated: '+now,150,13);
@@ -667,7 +715,7 @@ function genPseudoDocPDF(){{
   let y=28;
   lines.forEach(l=>{{if(y>270){{doc.addPage();addHeader(doc,'PSEUDONYMISED — NOT FOR PUBLIC RELEASE',fname);y=28;}}doc.text(l,10,y);y+=4.5;}});
   doc.setFontSize(7);doc.setTextColor(150,150,150);
-  doc.text('Generated: '+now+' | RegDarpan · CDSCO Regulatory Intelligence Platform',10,288);
+  doc.text('Generated: '+now+' | Nirnay — CDSCO AI Review System',10,288);
   doc.save(base+'_Pseudonymised.pdf');
 }}
 
@@ -709,7 +757,7 @@ with t2:
     st.markdown('<div class="upload-card"><h4>📁 Upload document</h4>', unsafe_allow_html=True)
 
     if doc_type == "Meeting Transcript / Audio":
-        st.markdown('<div class="audio-note">🎵 Audio files (MP3/WAV/M4A) accepted for meeting transcripts. Metadata is captured; full transcription via Whisper available in Stage 2.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="audio-note">Audio upload accepted. Automatic transcription requires Stage 2 integration with Whisper API. Please paste the transcript text manually in the box below.</div>', unsafe_allow_html=True)
         sum_file = st.file_uploader("Word / PDF / TXT / Audio", type=["docx","pdf","txt","mp3","wav","m4a"], key="sum_up")
     else:
         sum_file = st.file_uploader("Word / PDF / TXT", type=["docx","pdf","txt"], key="sum_up2")
@@ -719,8 +767,9 @@ with t2:
         fname = sum_file.name.lower()
         if any(fname.endswith(x) for x in [".mp3",".wav",".m4a"]):
             audio_mode = True
-            st.success(f"✓ Audio received: {sum_file.name} ({round(sum_file.size/1024)} KB)")
-            st.session_state["sum_text"] = f"[AUDIO: {sum_file.name}]\nPaste transcript below if available."
+            st.success(f"✓ Audio file received: {sum_file.name} — please paste the transcript text below")
+            st.session_state["sum_text"] = ""
+            st.session_state["sum_ta"] = ""
             st.session_state["sum_ta"] = st.session_state["sum_text"]
         else:
             txt, err = extract_text(sum_file)
@@ -802,7 +851,35 @@ with t2:
                     if iss:
                         with st.expander("Unresolved Issues"):
                             for i,x in enumerate(iss[:6],1): st.markdown(f"{i}. {x}")
-                    st.download_button("⬇ Download Meeting Summary","\n".join(dec+act),file_name="meeting_summary.txt")
+                    # Fallback: if keyword extraction found nothing, extract by section headings
+                    if not dec and not act and not iss:
+                        sections = {}
+                        current_section = "Summary"
+                        for line in lines:
+                            stripped = line.strip()
+                            if not stripped: continue
+                            is_heading = (stripped.isupper() and len(stripped) > 3) or                                         (stripped.endswith(":") and len(stripped.split()) <= 6) or                                         (stripped.startswith("SECTION") or stripped.startswith("Section"))
+                            if is_heading:
+                                current_section = stripped.rstrip(":")
+                                sections[current_section] = []
+                            else:
+                                if current_section not in sections:
+                                    sections[current_section] = []
+                                if len(sections[current_section]) < 3:
+                                    sections[current_section].append(stripped)
+                        if sections:
+                            st.markdown("**Document structure extracted**")
+                            for sec, pts in sections.items():
+                                if pts:
+                                    st.markdown(f"**{sec}**")
+                                    for p in pts[:2]:
+                                        st.markdown(f"— {p}")
+                            fallback_txt = "\n".join([f"{s}:\n" + "\n".join(p) for s,p in sections.items() if p])
+                            st.download_button("⬇ Download Summary", fallback_txt, file_name="meeting_summary.txt")
+                        else:
+                            st.info("No structured content detected. Please paste transcript text after uploading audio.")
+                    else:
+                        st.download_button("⬇ Download Meeting Summary","\n".join(dec+act),file_name="meeting_summary.txt")
 
 
 # ═══ FEATURE 3 — COMPLETENESS ════════════════════════════════════════════════
@@ -886,7 +963,7 @@ with t3:
                     if "Red" in str(v):   return "background-color:#fee2e2;color:#b91c1c;font-weight:600"
                     return ""
                 st.markdown('<div class="tw">',unsafe_allow_html=True)
-                st.dataframe(df.style.applymap(srag,subset=["RAG"]),use_container_width=True,hide_index=True)
+                st.dataframe(df.style.map(srag,subset=["RAG"]),use_container_width=True,hide_index=True)
                 st.markdown('</div>',unsafe_allow_html=True)
             st.download_button("⬇ Download Completeness Report",df.to_csv(index=False),file_name="completeness_report.csv",mime="text/csv")
 
@@ -1136,7 +1213,7 @@ with t6:
             return ""
         with st.expander("Full Inspection Report",expanded=True):
             st.markdown('<div class="tw">',unsafe_allow_html=True)
-            st.dataframe(df.style.applymap(sr,subset=["Risk"]),use_container_width=True,hide_index=True)
+            st.dataframe(df.style.map(sr,subset=["Risk"]),use_container_width=True,hide_index=True)
             st.markdown('</div>',unsafe_allow_html=True)
         full=(f"CDSCO GCP SITE INSPECTION REPORT\n{'='*48}\n"
               f"Site: {insp_site}\nNo: {insp_sno}\nDate: {insp_date.strftime('%d %B %Y')}\n"

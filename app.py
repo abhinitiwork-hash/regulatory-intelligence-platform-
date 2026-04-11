@@ -27,7 +27,7 @@ st.set_page_config(
     page_title="Nirnay — CDSCO AI Review System",
     page_icon="⚕️",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # ── CSS ───────────────────────────────────────────────────────────────────────
@@ -286,27 +286,7 @@ def run_anonymisation(text):
             "types":list(found_types),"count":len(tokens)}
 
 
-# ── SIDEBAR ───────────────────────────────────────────────────────────────────
-with st.sidebar:
-    st.markdown("""
-    <div style='text-align:center;padding:16px 0 10px;'>
-    <div style='font-size:38px;'>⚕️</div>
-    <div style='font-weight:800;font-size:18px;color:white;margin-top:6px;letter-spacing:-0.3px;'>Nirnay</div>
-    <div style='font-size:10px;color:rgba(255,255,255,0.4);letter-spacing:.1em;text-transform:uppercase;margin-top:3px;'>CDSCO · AI Review System</div>
-    <div style='width:24px;height:2px;background:#FF9933;margin-top:8px;border-radius:1px;'></div>
-    </div>
-    <hr style='border-color:rgba(255,255,255,0.15);margin:10px 0;'>
-    """, unsafe_allow_html=True)
-    st.markdown("<div style='font-size:10px;font-weight:600;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px;'>Compliance</div>", unsafe_allow_html=True)
-    for b in ["✅  DPDP Act 2023","✅  ICMR Guidelines 2017","✅  CDSCO Schedule Y","✅  MeitY AI Ethics"]:
-        st.markdown(f"<div style='background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.3);border-radius:20px;padding:4px 10px;font-size:11px;color:#4ade80;margin:3px 0;'>{b}</div>", unsafe_allow_html=True)
-    st.markdown("<hr style='border-color:rgba(255,255,255,0.15);margin:12px 0;'>", unsafe_allow_html=True)
-    st.markdown("<div style='font-size:10px;font-weight:600;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px;'>Public Datasets</div>", unsafe_allow_html=True)
-    for d in ["FDA FAERS","CDSCO CT-04/05/06","ClinicalTrials.gov","CTRI India"]:
-        st.markdown(f"<div style='font-size:11px;color:rgba(255,255,255,0.6);padding:2px 0;'>◦ {d}</div>", unsafe_allow_html=True)
-    st.markdown("<hr style='border-color:rgba(255,255,255,0.15);margin:12px 0;'>", unsafe_allow_html=True)
-    st.markdown("<div style='font-size:11px;color:rgba(255,255,255,0.4);line-height:1.6;'>AI assists officers. Final decisions by qualified human reviewers.</div>", unsafe_allow_html=True)
-    st.markdown("<div style='font-size:10px;color:rgba(255,255,255,0.22);margin-top:10px;text-align:center;'>Stage 1 · CDSCO AI Hackathon 2026</div>", unsafe_allow_html=True)
+# ── SIDEBAR REMOVED — navigation via tabs, brand in hero ─────────────────────
 
 
 # ── HEADER ────────────────────────────────────────────────────────────────────
@@ -315,7 +295,12 @@ st.markdown("""
   <div style="position:absolute;right:20px;top:-10px;font-size:140px;font-weight:900;color:rgba(255,255,255,0.025);line-height:1;pointer-events:none;">N</div>
   <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:20px;">
     <div style="flex:1;">
-      <div style="font-size:10px;font-weight:700;color:#FF9933;letter-spacing:.14em;text-transform:uppercase;margin-bottom:8px;">CDSCO Regulatory Intelligence Platform</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+        <div style="font-size:32px;font-weight:900;color:white;letter-spacing:-1px;line-height:1;">Nirnay</div>
+        <div style="width:1px;height:28px;background:rgba(255,255,255,0.2);"></div>
+        <div style="font-size:10px;font-weight:700;color:#FF9933;letter-spacing:.12em;text-transform:uppercase;line-height:1.4;">CDSCO<br>AI Review System</div>
+      </div>
+      <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.4);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;">Regulatory Intelligence Platform</div>
       <div style="font-size:26px;font-weight:800;color:white;letter-spacing:-0.4px;line-height:1.15;">Less paperwork.<br><span style="color:#FF9933;">More decisions.</span></div>
       <div style="font-size:12px;color:rgba(255,255,255,0.55);margin-top:10px;line-height:1.7;max-width:480px;">
         From SUGAM submissions to SAE case resolution — Nirnay brings AI-powered precision to every stage of CDSCO's regulatory review workflow under the New Drugs and Clinical Trials Rules, 2019.
@@ -376,6 +361,38 @@ st.markdown("""
   </div>
 </div>
 """, unsafe_allow_html=True)
+
+
+# ── AI RECOMMENDATION CARD ────────────────────────────────────────────────────
+def ai_recommendation_card(finding, risk_level, action, detail=""):
+    """Render a prominent AI Recommendation card at top of results."""
+    risk_colours = {
+        "Critical": ("background:#fee2e2;border-color:#fca5a5;", "color:#991b1b;background:#fecaca;"),
+        "High":     ("background:#fff7ed;border-color:#fed7aa;", "color:#9a3412;background:#ffedd5;"),
+        "Medium":   ("background:#fefce8;border-color:#fef08a;", "color:#854d0e;background:#fef9c3;"),
+        "Low":      ("background:#f0fdf4;border-color:#bbf7d0;", "color:#166534;background:#dcfce7;"),
+    }
+    card_style, badge_style = risk_colours.get(risk_level, risk_colours["Medium"])
+    st.markdown(f"""
+    <div style="border-radius:12px;padding:18px 22px;margin:14px 0;border:1px solid;
+         {card_style}border-left:5px solid #0a2240;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+        <div style="flex:1;">
+          <div style="font-size:10px;font-weight:700;color:#0a2240;letter-spacing:.1em;
+               text-transform:uppercase;margin-bottom:6px;">AI Recommendation</div>
+          <div style="font-size:15px;font-weight:700;color:#0a2240;margin-bottom:4px;">{finding}</div>
+          <div style="font-size:13px;color:#475569;line-height:1.5;">{action}</div>
+          {f'<div style="font-size:11px;color:#64748b;margin-top:5px;">{detail}</div>' if detail else ""}
+        </div>
+        <div style="text-align:center;flex-shrink:0;">
+          <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+               padding:6px 16px;border-radius:6px;{badge_style}">
+            {risk_level} Risk
+          </div>
+        </div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 
 # ── TABS ──────────────────────────────────────────────────────────────────────
@@ -484,6 +501,30 @@ with t1:
         else:
             with st.spinner("Detecting PII/PHI entities..."):
                 result = run_anonymisation(content)
+
+            # ── AI Recommendation card ────────────────────────────────
+            _pii_count = result["count"]
+            if _pii_count == 0:
+                ai_recommendation_card(
+                    "No sensitive information detected",
+                    "Low",
+                    "This document appears to contain no standard PII/PHI patterns. If you believe it contains sensitive data, verify that names follow Indian name formats or IDs use standard regulatory prefixes.",
+                    "Manual review recommended before sharing externally."
+                )
+            elif _pii_count >= 5:
+                ai_recommendation_card(
+                    f"{_pii_count} sensitive items detected and anonymised",
+                    "High",
+                    "This document contained significant PII/PHI. Download the anonymised version for external sharing. The compliance audit log has been generated for DPDP Act 2023 records.",
+                    f"Entity types found: {', '.join(result['types'])}"
+                )
+            else:
+                ai_recommendation_card(
+                    f"{_pii_count} sensitive item(s) detected and anonymised",
+                    "Medium",
+                    "PII/PHI detected and removed. Review the token mapping table to verify all sensitive fields have been addressed before sharing.",
+                    f"Entity types found: {', '.join(result['types'])}"
+                )
 
             # ── PII chips — always true, always visible ─────────────────
             if result["types"]:
@@ -808,6 +849,18 @@ with t2:
                           "Recovered" if any(w in tl for w in ["recovered","resolution","normal sinus"]) else \
                           "Recovering" if "recovering" in tl else "Ongoing"
                 cc = "err" if priority=="URGENT" else "warn" if priority=="STANDARD" else "ok"
+                _risk_map = {"URGENT":"Critical","STANDARD":"Medium","LOW":"Low"}
+                _action_map = {
+                    "URGENT": "Immediate escalation to DCGI required. Expedited 7-day report applicable.",
+                    "STANDARD": "Route to standard SAE review queue. Expedited 15-day report required.",
+                    "LOW": "Log as periodic SAE. Standard 90-day reporting timeline applies."
+                }
+                ai_recommendation_card(
+                    f"SAE classified as {priority} · {causality} · Outcome: {outcome}",
+                    _risk_map[priority],
+                    _action_map[priority],
+                    f"Document type: SAE Case Narration · CDSCO Form 12A"
+                )
                 st.markdown(f'<div class="rc {cc}"><b>Priority: {priority}</b> · Causality: {causality} · Outcome: {outcome}</div>', unsafe_allow_html=True)
                 c1,c2,c3 = st.columns(3)
                 c1.metric("Priority",priority); c2.metric("Causality",causality); c3.metric("Outcome",outcome)
@@ -953,6 +1006,16 @@ with t3:
             c1,c2,c3,c4=st.columns(4)
             c1.metric("Total",20);c2.metric("Present",pre);c3.metric("Incomplete",inc);c4.metric("Missing",mis)
             st.progress(sc/100,text=f"Schedule Y Completeness: {sc}%")
+            _comp_risk = "Critical" if cm else "High" if sc < 60 else "Medium" if sc < 85 else "Low"
+            _comp_action = (f"Reject — {len(cm)} critical Schedule Y field(s) missing: {', '.join(cm[:3])}{'...' if len(cm)>3 else ''}. Application cannot proceed." if cm
+                           else f"Return for completion — {missing} field(s) need attention before technical review."
+                           if sc < 85 else "Approve for technical review — all critical fields present.")
+            ai_recommendation_card(
+                f"Schedule Y completeness: {sc}% · {rec}",
+                _comp_risk,
+                _comp_action,
+                f"Fields checked: 20 mandatory Schedule Y fields · Present: {pre} · Missing: {missing} · Incomplete: {inc}"
+            )
             st.markdown(f'<div class="rc {cc}"><b>Recommendation:</b> {rec}</div>',unsafe_allow_html=True)
             if cm: st.error(f"Critical missing: {', '.join(cm)}")
             if mm: st.warning(f"Major missing: {', '.join(mm)}")
@@ -1046,6 +1109,19 @@ with t4:
             icd={"DEATH":"R96.x/R98/R99","DISABILITY":"S00-T98 (perm.)","HOSPITALISATION":"Z75.1","OTHERS":"MedDRA PT"}
             rpt={"DEATH":"Expedited 7-day","DISABILITY":"Expedited 15-day","HOSPITALISATION":"Expedited 15-day","OTHERS":"Periodic 90-day"}
 
+            _cls_risk_map = {"DEATH":"Critical","DISABILITY":"High","HOSPITALISATION":"Medium","OTHERS":"Low"}
+            _cls_action = {
+                "DEATH":"Expedited 7-day report mandatory. Immediate notification to DCGI and Ethics Committee required under Schedule Y.",
+                "DISABILITY":"Expedited 15-day report required. Notify sponsor and Ethics Committee. Assess causality.",
+                "HOSPITALISATION":"Expedited 15-day report required. Monitor patient outcome and submit follow-up report.",
+                "OTHERS":"Periodic reporting within 90 days. Document in safety database."
+            }
+            ai_recommendation_card(
+                f"SAE classified as {sev} · Confidence: {conf} · Priority queue position: {ps}/4",
+                _cls_risk_map[sev],
+                _cls_action[sev],
+                f"ICD-10 reference: {icd[sev]} · Reporting timeline: {rpt[sev]}"
+            )
             st.markdown(f'<div style="{sc_s};border-radius:10px;padding:10px 20px;font-size:18px;font-weight:700;display:inline-block;margin-bottom:12px;">⬤ {sev}</div>',unsafe_allow_html=True)
             c1,c2,c3=st.columns(3)
             c1.metric("Severity",sev); c2.metric("Confidence",conf); c3.metric("Priority Queue",f"{ps} / 4")
@@ -1148,6 +1224,15 @@ with t5:
             c4.metric("Changed",sum(1 for c in changes if c["Type"]=="CHANGED"))
             c5.metric("Substantive",sc)
             cc="err" if sc>0 else "ok"
+            _c5_risk = "High" if sc >= 3 else "Medium" if sc >= 1 else "Low"
+            _c5_action = (f"{sc} substantive change(s) detected affecting regulatory parameters. These changes require formal review and may require amended submission to CDSCO."
+                         if sc > 0 else "No substantive changes detected. Administrative edits only. Document may proceed without re-review.")
+            ai_recommendation_card(
+                f"{len(changes)} total changes · {sc} substantive · {len(changes)-sc} administrative",
+                _c5_risk,
+                _c5_action,
+                "Substantive changes affect dosage, safety data, outcomes, or patient information and require regulatory attention."
+            )
             st.markdown(f'<div class="rc {cc}">{"⚠️ "+str(sc)+" substantive change(s) — regulatory review required." if sc>0 else "✓ No substantive changes detected."}</div>',unsafe_allow_html=True)
             if changes:
                 df=pd.DataFrame(changes)
@@ -1204,6 +1289,16 @@ with t6:
         c1,c2,c3=st.columns(3)
         c1.metric("Critical",cc_n);c2.metric("Major",mc_n);c3.metric("Minor",mn_n)
         cc="err" if cc_n>0 else "warn" if mc_n>0 else "ok"
+        _insp_risk = "Critical" if cc_n > 0 else "High" if mc_n > 0 else "Low"
+        _insp_action = (f"{cc_n} Critical GCP deviation(s) found. Immediate CAPA required. Site operations may be suspended. Report to DCGI within 15 days."
+                       if cc_n > 0 else f"{mc_n} Major GCP deviation(s) found. CAPA plan must be submitted within 30 days."
+                       if mc_n > 0 else f"No Critical or Major findings. {mn_n} Minor deviation(s) to be documented in site log within 60 days.")
+        ai_recommendation_card(
+            f"Inspection outcome: {cc_n} Critical · {mc_n} Major · {mn_n} Minor findings",
+            _insp_risk,
+            _insp_action,
+            f"Site: {insp_site or '[Site name]'} · Date: {insp_date.strftime('%d %B %Y')} · Inspector: {insp_name or '[Inspector]'}"
+        )
         st.markdown(f'<div class="rc {cc}">{"⚠️ "+str(cc_n)+" Critical findings — CAPA required." if cc_n>0 else "⚠️ "+str(mc_n)+" Major findings — CAPA due in 30 days." if mc_n>0 else "✓ No Critical or Major findings."}</div>',unsafe_allow_html=True)
         df=pd.DataFrame(rows)
         def sr(v):

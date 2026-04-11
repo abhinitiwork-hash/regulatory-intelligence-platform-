@@ -291,40 +291,92 @@ def run_anonymisation(text):
 
 # ── HEADER ────────────────────────────────────────────────────────────────────
 st.markdown("""
-<div style="background:#0a2240;border-radius:14px;padding:28px 32px;margin-bottom:16px;position:relative;overflow:hidden;">
-  <div style="position:absolute;right:20px;top:-10px;font-size:140px;font-weight:900;color:rgba(255,255,255,0.025);line-height:1;pointer-events:none;">N</div>
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:20px;">
-    <div style="flex:1;">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
-        <div style="font-size:32px;font-weight:900;color:white;letter-spacing:-1px;line-height:1;">Nirnay</div>
-        <div style="width:1px;height:28px;background:rgba(255,255,255,0.2);"></div>
-        <div style="font-size:10px;font-weight:700;color:#FF9933;letter-spacing:.12em;text-transform:uppercase;line-height:1.4;">CDSCO<br>AI Review System</div>
+<div style="background:#0a2240;border-radius:14px;padding:28px 32px 0;margin-bottom:16px;position:relative;overflow:hidden;">
+  <div style="position:absolute;right:0;top:0;bottom:0;width:45%;background:linear-gradient(90deg,transparent,rgba(255,153,51,0.02));pointer-events:none;"></div>
+  <div style="position:absolute;right:24px;top:-16px;font-size:160px;font-weight:900;color:rgba(255,255,255,0.02);line-height:1;pointer-events:none;user-select:none;">N</div>
+  <div style="display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:0;align-items:start;padding-bottom:22px;">
+
+    <div>
+      <div style="font-size:9px;font-weight:700;color:rgba(255,153,51,0.7);letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px;">Central Drugs Standard Control Organisation · India</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+        <div style="font-size:30px;font-weight:900;color:white;letter-spacing:-0.8px;line-height:1;">Nirnay</div>
+        <div style="width:1px;height:26px;background:rgba(255,255,255,0.2);"></div>
+        <div style="font-size:9px;font-weight:700;color:#FF9933;letter-spacing:.1em;text-transform:uppercase;line-height:1.5;">CDSCO<br>AI Review System</div>
       </div>
-      <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.4);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;">Regulatory Intelligence Platform</div>
-      <div style="font-size:26px;font-weight:800;color:white;letter-spacing:-0.4px;line-height:1.15;">Less paperwork.<br><span style="color:#FF9933;">More decisions.</span></div>
-      <div style="font-size:12px;color:rgba(255,255,255,0.55);margin-top:10px;line-height:1.7;max-width:480px;">
-        From SUGAM submissions to SAE case resolution — Nirnay brings AI-powered precision to every stage of CDSCO's regulatory review workflow under the New Drugs and Clinical Trials Rules, 2019.
-        Nirnay handles the screening. Every decision gets the attention it deserves.
+      <div style="font-size:20px;font-weight:800;color:white;letter-spacing:-0.3px;line-height:1.2;margin-bottom:10px;">Regulatory review,<br><span style="color:#FF9933;">reimagined for India.</span></div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.5);line-height:1.7;max-width:320px;margin-bottom:14px;">
+        From SUGAM submissions to SAE case resolution — Nirnay brings AI-powered precision to every stage of CDSCO's regulatory workflow under the New Drugs and Clinical Trials Rules, 2019.
       </div>
-      <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.25);border-radius:4px;padding:5px 12px;font-size:10px;color:#86efac;font-weight:600;margin-top:14px;">
+      <div style="display:inline-flex;align-items:center;gap:5px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);border-radius:4px;padding:4px 10px;font-size:9px;color:#86efac;font-weight:600;">
         <div style="width:5px;height:5px;border-radius:50%;background:#22c55e;flex-shrink:0;"></div>
         All processing is local · No data leaves this platform
       </div>
     </div>
-    <div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0;">
-      <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px 18px;text-align:center;min-width:78px;">
-        <div style="font-size:24px;font-weight:800;color:#FF9933;line-height:1;">8</div>
-        <div style="font-size:9px;color:rgba(255,255,255,0.4);margin-top:3px;line-height:1.3;">PII types<br>detected</div>
+
+    <div style="width:1px;background:rgba(255,255,255,0.07);margin:0 28px;align-self:stretch;"></div>
+
+    <div>
+      <div style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;">Supported document types</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;margin-bottom:5px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);">
+        <div style="width:6px;height:6px;border-radius:50%;background:#22c55e;flex-shrink:0;"></div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.75);font-weight:500;flex:1;">SAE Case Narration</div>
+        <div style="font-size:8px;font-weight:700;color:#4ade80;letter-spacing:.06em;">ACTIVE</div>
       </div>
-      <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px 18px;text-align:center;">
-        <div style="font-size:24px;font-weight:800;color:#FF9933;line-height:1;">20</div>
-        <div style="font-size:9px;color:rgba(255,255,255,0.4);margin-top:3px;line-height:1.3;">Schedule Y<br>fields</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;margin-bottom:5px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);">
+        <div style="width:6px;height:6px;border-radius:50%;background:#22c55e;flex-shrink:0;"></div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.75);font-weight:500;flex:1;">SUGAM Checklist</div>
+        <div style="font-size:8px;font-weight:700;color:#4ade80;letter-spacing:.06em;">ACTIVE</div>
       </div>
-      <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px 18px;text-align:center;">
-        <div style="font-size:24px;font-weight:800;color:#FF9933;line-height:1;">6</div>
-        <div style="font-size:9px;color:rgba(255,255,255,0.4);margin-top:3px;line-height:1.3;">AI review<br>features</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;margin-bottom:5px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);">
+        <div style="width:6px;height:6px;border-radius:50%;background:#22c55e;flex-shrink:0;"></div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.75);font-weight:500;flex:1;">Clinical Trial Protocol</div>
+        <div style="font-size:8px;font-weight:700;color:#4ade80;letter-spacing:.06em;">ACTIVE</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;margin-bottom:5px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);">
+        <div style="width:6px;height:6px;border-radius:50%;background:#FF9933;flex-shrink:0;"></div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.75);font-weight:500;flex:1;">Meeting Transcript</div>
+        <div style="font-size:8px;font-weight:700;color:#FF9933;letter-spacing:.06em;">STAGE 2</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);">
+        <div style="width:6px;height:6px;border-radius:50%;background:#22c55e;flex-shrink:0;"></div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.75);font-weight:500;flex:1;">GCP Inspection Notes</div>
+        <div style="font-size:8px;font-weight:700;color:#4ade80;letter-spacing:.06em;">ACTIVE</div>
       </div>
     </div>
+
+    <div style="width:1px;background:rgba(255,255,255,0.07);margin:0 28px;align-self:stretch;"></div>
+
+    <div>
+      <div style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;">Platform capabilities</div>
+      <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+        <div style="font-size:26px;font-weight:800;color:#FF9933;line-height:1;min-width:36px;">8</div>
+        <div><div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.85);line-height:1.2;">PII types detected</div><div style="font-size:9px;color:rgba(255,255,255,0.3);margin-top:2px;">Names · IDs · Dates · Phone · Aadhaar</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+        <div style="font-size:26px;font-weight:800;color:#FF9933;line-height:1;min-width:36px;">20</div>
+        <div><div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.85);line-height:1.2;">Schedule Y fields</div><div style="font-size:9px;color:rgba(255,255,255,0.3);margin-top:2px;">All mandatory fields verified per submission</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+        <div style="font-size:26px;font-weight:800;color:#FF9933;line-height:1;min-width:36px;">6</div>
+        <div><div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.85);line-height:1.2;">AI review features</div><div style="font-size:9px;color:rgba(255,255,255,0.3);margin-top:2px;">Anonymise · Summarise · Classify · Compare</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:8px 0;">
+        <div style="font-size:26px;font-weight:800;color:#FF9933;line-height:1;min-width:36px;">3</div>
+        <div><div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.85);line-height:1.2;">Compliance frameworks</div><div style="font-size:9px;color:rgba(255,255,255,0.3);margin-top:2px;">DPDP 2023 · ICMR · CDSCO Schedule Y</div></div>
+      </div>
+    </div>
+
+  </div>
+  <div style="border-top:1px solid rgba(255,255,255,0.06);padding:10px 0;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+    <div style="font-size:9px;font-weight:600;color:rgba(255,255,255,0.3);display:flex;align-items:center;gap:5px;"><div style="width:12px;height:12px;border-radius:50%;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);display:flex;align-items:center;justify-content:center;font-size:7px;color:#4ade80;">✓</div>DPDP Act 2023</div>
+    <div style="color:rgba(255,255,255,0.1);font-size:14px;">·</div>
+    <div style="font-size:9px;font-weight:600;color:rgba(255,255,255,0.3);display:flex;align-items:center;gap:5px;"><div style="width:12px;height:12px;border-radius:50%;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);display:flex;align-items:center;justify-content:center;font-size:7px;color:#4ade80;">✓</div>ICMR Ethical Guidelines 2017</div>
+    <div style="color:rgba(255,255,255,0.1);font-size:14px;">·</div>
+    <div style="font-size:9px;font-weight:600;color:rgba(255,255,255,0.3);display:flex;align-items:center;gap:5px;"><div style="width:12px;height:12px;border-radius:50%;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);display:flex;align-items:center;justify-content:center;font-size:7px;color:#4ade80;">✓</div>CDSCO Schedule Y</div>
+    <div style="color:rgba(255,255,255,0.1);font-size:14px;">·</div>
+    <div style="font-size:9px;font-weight:600;color:rgba(255,255,255,0.3);display:flex;align-items:center;gap:5px;"><div style="width:12px;height:12px;border-radius:50%;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);display:flex;align-items:center;justify-content:center;font-size:7px;color:#4ade80;">✓</div>New Drugs &amp; Clinical Trials Rules 2019</div>
+    <div style="color:rgba(255,255,255,0.1);font-size:14px;">·</div>
+    <div style="font-size:9px;font-weight:600;color:rgba(255,255,255,0.3);display:flex;align-items:center;gap:5px;"><div style="width:12px;height:12px;border-radius:50%;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);display:flex;align-items:center;justify-content:center;font-size:7px;color:#4ade80;">✓</div>MeitY AI Ethics Guidelines</div>
   </div>
 </div>
 """, unsafe_allow_html=True)

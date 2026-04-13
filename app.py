@@ -36,8 +36,8 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 html,body,[class*="css"]{font-family:'Inter',sans-serif;}
 #MainMenu,footer,header{visibility:hidden;}
-.stApp{background-color:#0077b6;}
-.stTabs [data-baseweb="tab-panel"]{background:white;border-radius:0 0 12px 12px;padding:16px !important;}
+.stApp{background-color:#f0f3f8;}
+.stTabs [data-baseweb="tab-panel"]{background:white;border-radius:0 0 12px 12px;padding:20px !important;}
 
 section[data-testid="stSidebar"]{background:linear-gradient(180deg,#001f5b 0%,#003087 60%,#004db3 100%);}
 section[data-testid="stSidebar"] * {color:white!important;}
@@ -63,9 +63,11 @@ section[data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"]{backgrou
 .hw-s{background:#f0f4f8;border-radius:8px;padding:5px 10px;font-size:12px;color:#475569;display:flex;align-items:center;gap:5px;}
 .hw-n{background:#003087;color:white;border-radius:50%;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;}
 
-.stTabs [data-baseweb="tab-list"]{background:white;border-radius:12px;padding:4px;gap:2px;box-shadow:0 1px 4px rgba(0,0,0,0.06);}
-.stTabs [data-baseweb="tab"]{border-radius:8px;font-size:12px;font-weight:500;color:#64748b;padding:8px 12px;}
-.stTabs [aria-selected="true"]{background:#003087!important;color:white!important;}
+.stTabs [data-baseweb="tab-list"]{background:#0a2240;border-radius:10px;padding:4px;gap:2px;}
+.stTabs [data-baseweb="tab"]{border-radius:7px;font-size:12px;font-weight:500;color:rgba(255,255,255,0.55);padding:8px 14px;}
+.stTabs [aria-selected="true"]{background:#0077b6!important;color:white!important;}
+.stTabs [data-baseweb="tab"]:hover{color:white!important;}
+.stTabs [data-baseweb="tab-border"]{display:none;}
 
 .sec-hd{display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid #e2e8f0;}
 .sec-ic{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
@@ -333,140 +335,160 @@ ICON_COLORS = [
 ]
 
 if not st.session_state["logged_in"]:
-    # ── LANDING PAGE CSS ──────────────────────────────────────────────────────
-    st.markdown("""
+    import streamlit.components.v1 as _cv1_login
+    st.markdown("<style>.stApp{background-color:#f0f3f8 !important;}</style>", unsafe_allow_html=True)
+
+    _login_html = """
+<!DOCTYPE html>
+<html>
+<head>
 <style>
-.stApp{background-color:#0077b6 !important;}
-.lp-shell{display:flex;min-height:92vh;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.18);}
-.lp-left{flex:1.2;background:#f0f3f8;padding:40px 48px;display:flex;flex-direction:column;}
-.lp-right{width:380px;background:linear-gradient(145deg,#0077b6 0%,#005f8e 50%,#023e6e 100%);padding:40px 36px;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;}
-.lp-right::after{content:'';position:absolute;top:-80px;right:-80px;width:260px;height:260px;border-radius:50%;background:rgba(255,255,255,0.04);pointer-events:none;}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Inter',system-ui,sans-serif;}
+body{background:#f0f3f8;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+.shell{display:flex;width:100%;max-width:960px;min-height:560px;border-radius:16px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,0.14);}
+.left{flex:1;background:#f0f3f8;padding:40px 44px;display:flex;flex-direction:column;}
+.right{width:380px;background:linear-gradient(145deg,#0077b6 0%,#005a8a 50%,#023e6e 100%);padding:36px 32px;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;}
+.right::before{content:'';position:absolute;top:-60px;right:-60px;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,0.05);pointer-events:none;}
+.wordmark{display:flex;align-items:center;gap:12px;margin-bottom:24px;}
+.wm-name{font-size:36px;font-weight:900;color:#0a2240;letter-spacing:-1px;line-height:1;}
+.wm-sep{width:1px;height:26px;background:rgba(10,34,64,0.2);}
+.wm-sub{font-size:9px;font-weight:700;color:#0077b6;letter-spacing:.1em;text-transform:uppercase;line-height:1.5;}
+.tagline{font-size:18px;font-weight:700;color:#0a2240;line-height:1.3;margin-bottom:24px;letter-spacing:-0.2px;}
+.tagline span{color:#FF9933;}
+.carousel-label{font-size:9px;font-weight:700;color:#0a2240;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;}
+.slide{display:none;}.slide.active{display:block;}
+.feat-num{font-size:16px;font-weight:800;color:#0077b6;margin-bottom:6px;letter-spacing:-0.1px;}
+.feat-title{font-size:14px;font-weight:600;color:#0a2240;margin-bottom:18px;line-height:1.3;}
+.process{display:flex;align-items:center;gap:0;margin-bottom:20px;}
+.proc-step{display:flex;flex-direction:column;align-items:center;flex:1;}
+.proc-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:6px;}
+.proc-lbl{font-size:9px;font-weight:600;color:#0a2240;text-align:center;line-height:1.3;}
+.proc-arr{color:#94a3b8;font-size:14px;padding:0 6px;margin-bottom:20px;flex-shrink:0;}
+.dots{display:flex;gap:6px;margin-bottom:14px;}
+.dot{width:8px;height:8px;border-radius:50%;background:#cbd5e1;cursor:pointer;border:none;padding:0;}
+.dot.active{width:24px;border-radius:4px;background:#0a2240;}
+.comp-footer{display:flex;gap:12px;flex-wrap:wrap;margin-top:auto;padding-top:20px;}
+.cf{font-size:9px;font-weight:600;color:#0a2240;display:flex;align-items:center;gap:4px;}
+.cf-dot{width:5px;height:5px;border-radius:50%;background:#22c55e;}
+.login-label{font-size:10px;font-weight:700;color:rgba(255,255,255,0.6);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;}
+.login-card{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:12px;padding:20px;margin-bottom:20px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.3);}
+.login-title{font-size:20px;font-weight:800;color:white;margin-bottom:3px;}
+.login-sub{font-size:11px;color:rgba(255,255,255,0.55);line-height:1.5;}
+.field-lbl{font-size:11px;font-weight:600;color:white;margin-bottom:5px;margin-top:14px;display:block;}
+.field{width:100%;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:8px;padding:10px 14px;font-size:13px;color:white;outline:none;}
+.field::placeholder{color:rgba(255,255,255,0.4);}
+.signin-btn{width:100%;background:#FF9933;border:none;border-radius:8px;padding:12px;font-size:13px;font-weight:700;color:#0a2240;cursor:pointer;margin-top:16px;letter-spacing:.02em;}
+.signin-btn:hover{background:#e8871e;}
+.forgot{font-size:10px;color:rgba(255,255,255,0.45);text-align:center;margin-top:10px;}
+.stage-note{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.16);border-radius:8px;padding:10px 12px;margin-top:14px;}
+.stage-note strong{font-size:11px;color:white;display:block;margin-bottom:2px;}
+.stage-note p{font-size:10px;color:rgba(255,255,255,0.55);line-height:1.6;margin:0;}
+.disclaimer{font-size:9px;color:rgba(255,255,255,0.25);text-align:center;margin-top:14px;line-height:1.6;}
+.err{color:#fca5a5;font-size:11px;margin-top:6px;display:none;}
 </style>
-""", unsafe_allow_html=True)
-
-    # ── LAYOUT: left + right ──────────────────────────────────────────────────
-    lp_l, lp_r = st.columns([1.2, 1])
-
-    with lp_l:
-        # Wordmark
-        st.markdown("""
-<div style="display:flex;align-items:center;gap:12px;margin-bottom:28px;">
-  <div style="font-size:36px;font-weight:900;color:#0a2240;letter-spacing:-1px;line-height:1;">Nirnay</div>
-  <div style="width:1px;height:20px;background:rgba(10,34,64,0.2);"></div>
-  <div style="font-size:9px;font-weight:700;color:#0077b6;letter-spacing:.1em;text-transform:uppercase;line-height:1.5;">CDSCO<br>AI Review System</div>
-</div>
-""", unsafe_allow_html=True)
-
-        # Tagline
-        st.markdown("""
-<div style="font-size:18px;font-weight:700;color:#0a2240;letter-spacing:-0.2px;line-height:1.3;margin-bottom:22px;">Regulatory review,<br><span style="color:#FF9933;">reimagined for India.</span></div>
-""", unsafe_allow_html=True)
-
-        # Carousel label
-        st.markdown("""
-<div style="font-size:9px;font-weight:700;color:#0a2240;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;">What Nirnay can do for you</div>
-""", unsafe_allow_html=True)
-
-        # Feature name (carousel current item)
-        idx = st.session_state["carousel_idx"]
-        num, feat, title, _ = FEATURES[idx]
-        st.markdown(f"""
-<div style="font-size:16px;font-weight:800;color:#0077b6;margin-bottom:10px;letter-spacing:-0.1px;">{num} · {feat}</div>
-<div style="font-size:13px;font-weight:600;color:#0a2240;margin-bottom:18px;line-height:1.3;">{title}</div>
-""", unsafe_allow_html=True)
-
-        # SVG process illustration
-        st.markdown(f"""
-<div style="display:flex;align-items:center;gap:0;margin-bottom:22px;">
-  <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
-    <div style="width:46px;height:46px;border-radius:10px;background:#e0f2fe;border:1.5px solid #bae6fd;display:flex;align-items:center;justify-content:center;margin-bottom:6px;">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4" y="2" width="12" height="16" rx="2" fill="#0369a1" opacity=".15"/><rect x="4" y="2" width="12" height="16" rx="2" stroke="#0369a1" stroke-width="1.5"/><line x1="7" y1="7" x2="13" y2="7" stroke="#0369a1" stroke-width="1.2" stroke-linecap="round"/><line x1="7" y1="10" x2="13" y2="10" stroke="#0369a1" stroke-width="1.2" stroke-linecap="round"/><line x1="7" y1="13" x2="10" y2="13" stroke="#0369a1" stroke-width="1.2" stroke-linecap="round"/><path d="M14 2v4h4" stroke="#0369a1" stroke-width="1.2" fill="none"/></svg>
+</head>
+<body>
+<div class="shell">
+  <div class="left">
+    <div class="wordmark">
+      <div class="wm-name">Nirnay</div>
+      <div class="wm-sep"></div>
+      <div class="wm-sub">CDSCO<br>AI Review System</div>
     </div>
-    <div style="font-size:10px;font-weight:600;color:#0a2240;text-align:center;line-height:1.3;">Upload<br>document</div>
-  </div>
-  <div style="color:#94a3b8;font-size:16px;padding:0 8px;margin-bottom:22px;">→</div>
-  <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
-    <div style="width:46px;height:46px;border-radius:10px;background:#0a2240;border:1.5px solid #0a2240;display:flex;align-items:center;justify-content:center;margin-bottom:6px;">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="#FF9933" stroke-width="1.5"/><circle cx="12" cy="12" r="3" fill="#FF9933"/><line x1="12" y1="4" x2="12" y2="7" stroke="#FF9933" stroke-width="1.5" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="20" stroke="#FF9933" stroke-width="1.5" stroke-linecap="round"/><line x1="4" y1="12" x2="7" y2="12" stroke="#FF9933" stroke-width="1.5" stroke-linecap="round"/><line x1="17" y1="12" x2="20" y2="12" stroke="#FF9933" stroke-width="1.5" stroke-linecap="round"/></svg>
+    <div class="tagline">Regulatory review,<br><span>reimagined for India.</span></div>
+    <div class="carousel-label">What Nirnay can do for you</div>
+    <div class="slide active" data-idx="0"><div class="feat-num">01 &middot; Anonymisation</div><div class="feat-title">Protect sensitive information</div></div>
+    <div class="slide" data-idx="1"><div class="feat-num">02 &middot; Summarisation</div><div class="feat-title">Get a quick document summary</div></div>
+    <div class="slide" data-idx="2"><div class="feat-num">03 &middot; Completeness</div><div class="feat-title">Check if an application is complete</div></div>
+    <div class="slide" data-idx="3"><div class="feat-num">04 &middot; Classification</div><div class="feat-title">Classify adverse event severity</div></div>
+    <div class="slide" data-idx="4"><div class="feat-num">05 &middot; Comparison</div><div class="feat-title">See what changed between versions</div></div>
+    <div class="slide" data-idx="5"><div class="feat-num">06 &middot; Inspection</div><div class="feat-title">Generate a formal inspection report</div></div>
+    <div class="process">
+      <div class="proc-step">
+        <div class="proc-icon" style="background:#e0f2fe;border:1.5px solid #bae6fd;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="4" y="2" width="12" height="16" rx="2" fill="#0369a1" opacity=".15"/><rect x="4" y="2" width="12" height="16" rx="2" stroke="#0369a1" stroke-width="1.5"/><line x1="7" y1="7" x2="13" y2="7" stroke="#0369a1" stroke-width="1.2" stroke-linecap="round"/><line x1="7" y1="10" x2="13" y2="10" stroke="#0369a1" stroke-width="1.2" stroke-linecap="round"/><line x1="7" y1="13" x2="10" y2="13" stroke="#0369a1" stroke-width="1.2" stroke-linecap="round"/></svg>
+        </div>
+        <div class="proc-lbl">Upload<br>document</div>
+      </div>
+      <div class="proc-arr">&#8594;</div>
+      <div class="proc-step">
+        <div class="proc-icon" style="background:#0a2240;border:1.5px solid #0a2240;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="#FF9933" stroke-width="1.5"/><circle cx="12" cy="12" r="3" fill="#FF9933"/><line x1="12" y1="4" x2="12" y2="7" stroke="#FF9933" stroke-width="1.5" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="20" stroke="#FF9933" stroke-width="1.5" stroke-linecap="round"/><line x1="4" y1="12" x2="7" y2="12" stroke="#FF9933" stroke-width="1.5" stroke-linecap="round"/><line x1="17" y1="12" x2="20" y2="12" stroke="#FF9933" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+        <div class="proc-lbl">Nirnay<br>processes</div>
+      </div>
+      <div class="proc-arr">&#8594;</div>
+      <div class="proc-step">
+        <div class="proc-icon" style="background:#dcfce7;border:1.5px solid #bbf7d0;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" fill="#166534" opacity=".1"/><circle cx="12" cy="12" r="9" stroke="#166534" stroke-width="1.5"/><path d="M8 12l3 3 5-5" stroke="#166534" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="proc-lbl">Decision<br>ready</div>
+      </div>
     </div>
-    <div style="font-size:10px;font-weight:600;color:#0a2240;text-align:center;line-height:1.3;">Nirnay<br>processes</div>
-  </div>
-  <div style="color:#94a3b8;font-size:16px;padding:0 8px;margin-bottom:22px;">→</div>
-  <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
-    <div style="width:46px;height:46px;border-radius:10px;background:#dcfce7;border:1.5px solid #bbf7d0;display:flex;align-items:center;justify-content:center;margin-bottom:6px;">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" fill="#166534" opacity=".1"/><circle cx="12" cy="12" r="9" stroke="#166534" stroke-width="1.5"/><path d="M8 12l3 3 5-5" stroke="#166534" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div class="dots" id="dots">
+      <button class="dot active" onclick="goTo(0)"></button>
+      <button class="dot" onclick="goTo(1)"></button>
+      <button class="dot" onclick="goTo(2)"></button>
+      <button class="dot" onclick="goTo(3)"></button>
+      <button class="dot" onclick="goTo(4)"></button>
+      <button class="dot" onclick="goTo(5)"></button>
     </div>
-    <div style="font-size:10px;font-weight:600;color:#0a2240;text-align:center;line-height:1.3;">Decision<br>ready</div>
+    <div class="comp-footer">
+      <div class="cf"><div class="cf-dot"></div>DPDP Act 2023</div>
+      <div class="cf"><div class="cf-dot"></div>CDSCO Schedule Y</div>
+      <div class="cf"><div class="cf-dot"></div>ICMR Guidelines</div>
+      <div class="cf"><div class="cf-dot"></div>MeitY AI Ethics</div>
+    </div>
+  </div>
+  <div class="right">
+    <div class="login-label">Authorised access only</div>
+    <div class="login-card">
+      <div class="login-title">Sign in to Nirnay</div>
+      <div class="login-sub">CDSCO regulatory review platform<br>Stage 1 &middot; AI Hackathon 2026</div>
+    </div>
+    <label class="field-lbl">Username</label>
+    <input class="field" id="uname" placeholder="Enter username" autocomplete="username"/>
+    <label class="field-lbl">Password</label>
+    <input class="field" id="pwd" placeholder="Enter password" type="password" autocomplete="current-password"/>
+    <div class="err" id="err">Invalid credentials. Please try again.</div>
+    <button class="signin-btn" onclick="doLogin()">Sign In &#8594;</button>
+    <div class="forgot">Forgot credentials? Contact your administrator</div>
+    <div class="stage-note">
+      <strong>Stage 1 Demo</strong>
+      <p>Use the credentials provided by your team lead to access all regulatory review features.</p>
+    </div>
+    <div class="disclaimer">Authorised CDSCO personnel only.<br>All sessions are logged for compliance purposes.</div>
   </div>
 </div>
-""", unsafe_allow_html=True)
+<script>
+var cur=0;
+function goTo(n){
+  document.querySelectorAll('.slide').forEach(function(s,i){s.classList.toggle('active',i===n);});
+  document.querySelectorAll('.dot').forEach(function(d,i){d.classList.toggle('active',i===n);});
+  cur=n;
+}
+setInterval(function(){goTo((cur+1)%6);},3000);
+function doLogin(){
+  var u=document.getElementById('uname').value.trim();
+  var p=document.getElementById('pwd').value;
+  var err=document.getElementById('err');
+  if(u==='admin'&&p==='nirnay2026'){
+    window.parent.postMessage({type:'streamlit:setComponentValue',value:'LOGIN_OK'},'*');
+  } else {
+    err.style.display='block';
+  }
+}
+document.getElementById('pwd').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
+document.getElementById('uname').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('pwd').focus();});
+</script>
+</body>
+</html>
+"""
 
-        # Dots
-        dots_html = '<div style="display:flex;gap:7px;margin-bottom:14px;">'
-        for i in range(6):
-            if i == idx:
-                dots_html += '<div style="width:24px;height:8px;border-radius:4px;background:#0a2240;"></div>'
-            else:
-                dots_html += '<div style="width:8px;height:8px;border-radius:50%;background:#cbd5e1;"></div>'
-        dots_html += '</div>'
-        st.markdown(dots_html, unsafe_allow_html=True)
-
-        # Arrow buttons
-        arr1, arr2, _ = st.columns([1,1,5])
-        with arr1:
-            if st.button("←", key="carousel_prev"):
-                st.session_state["carousel_idx"] = (idx - 1) % 6
-                st.rerun()
-        with arr2:
-            if st.button("→", key="carousel_next"):
-                st.session_state["carousel_idx"] = (idx + 1) % 6
-                st.rerun()
-
-        # Compliance footer
-        st.markdown("""
-<div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:20px;">
-  <div style="font-size:9px;font-weight:600;color:#0a2240;display:flex;align-items:center;gap:4px;"><div style="width:5px;height:5px;border-radius:50%;background:#22c55e;"></div>DPDP Act 2023</div>
-  <div style="font-size:9px;font-weight:600;color:#0a2240;display:flex;align-items:center;gap:4px;"><div style="width:5px;height:5px;border-radius:50%;background:#22c55e;"></div>CDSCO Schedule Y</div>
-  <div style="font-size:9px;font-weight:600;color:#0a2240;display:flex;align-items:center;gap:4px;"><div style="width:5px;height:5px;border-radius:50%;background:#22c55e;"></div>ICMR Guidelines</div>
-  <div style="font-size:9px;font-weight:600;color:#0a2240;display:flex;align-items:center;gap:4px;"><div style="width:5px;height:5px;border-radius:50%;background:#22c55e;"></div>MeitY AI Ethics</div>
-</div>
-""", unsafe_allow_html=True)
-
-    with lp_r:
-        st.markdown("""
-<div style="background:linear-gradient(145deg,#0077b6,#023e6e);border-radius:14px;padding:28px 24px;">
-<div style="background:rgba(255,255,255,0.13);border:1px solid rgba(255,255,255,0.28);border-radius:12px;padding:24px 20px;box-shadow:0 8px 32px rgba(0,0,0,0.2),inset 0 1px 0 rgba(255,255,255,0.35);">
-<div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.65);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;">Authorised access only</div>
-<div style="font-size:19px;font-weight:800;color:white;margin-bottom:3px;">Sign in to Nirnay</div>
-<div style="font-size:11px;color:rgba(255,255,255,0.55);margin-bottom:22px;line-height:1.5;">CDSCO regulatory review platform<br>Stage 1 &middot; AI Hackathon 2026</div>
-</div>
-</div>
-""", unsafe_allow_html=True)
-
-        username = st.text_input("Username", placeholder="Enter username", key="login_user",
-                                  label_visibility="visible")
-        password = st.text_input("Password", placeholder="Enter password", key="login_pass",
-                                  type="password", label_visibility="visible")
-
-        if st.button("Sign In →", type="primary", use_container_width=True, key="login_btn"):
-            if username == VALID_USER and password == VALID_PASS:
-                st.session_state["logged_in"] = True
-                st.rerun()
-            else:
-                st.error("Invalid credentials. Please try again.")
-
-        st.markdown("""
-<div style="text-align:center;margin-top:8px;">
-  <span style="font-size:10px;color:rgba(255,255,255,0.4);">Forgot credentials? Contact your administrator</span>
-</div>
-<div style="border-top:1px solid rgba(255,255,255,0.15);margin:16px 0;"></div>
-<div style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);border-radius:8px;padding:10px 12px;">
-  <div style="font-size:11px;font-weight:700;color:white;margin-bottom:3px;">Stage 1 Demo</div>
-  <div style="font-size:10px;color:rgba(255,255,255,0.6);line-height:1.6;">Use the credentials provided by your team lead to access all regulatory review features.</div>
-</div>
-<div style="font-size:9px;color:rgba(255,255,255,0.3);text-align:center;margin-top:14px;line-height:1.6;">Authorised CDSCO personnel only.<br>All sessions are logged for compliance purposes.</div>
-""", unsafe_allow_html=True)
-
+    login_result = _cv1_login.html(_login_html, height=640, scrolling=False)
+    if login_result == "LOGIN_OK":
+        st.session_state["logged_in"] = True
+        st.rerun()
     st.stop()
 
 # ═══ LOGGED IN — show post-login home then full app ════════════════════════════
@@ -475,11 +497,11 @@ tb1, tb2 = st.columns([3,1])
 with tb1:
     st.markdown("""
 <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
-  <div style="font-size:22px;font-weight:900;color:white;letter-spacing:-0.6px;">Nirnay</div>
-  <div style="width:1px;height:18px;background:rgba(255,255,255,0.3);"></div>
-  <div style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.7);letter-spacing:.1em;text-transform:uppercase;line-height:1.5;">CDSCO<br>AI Review System</div>
-  <div style="width:1px;height:18px;background:rgba(255,255,255,0.2);margin:0 4px;"></div>
-  <div style="font-size:12px;color:rgba(255,255,255,0.6);font-weight:500;">Regulatory review, reimagined for India.</div>
+  <div style="font-size:26px;font-weight:900;color:#0a2240;letter-spacing:-0.8px;">Nirnay</div>
+  <div style="width:1px;height:20px;background:rgba(10,34,64,0.2);"></div>
+  <div style="font-size:9px;font-weight:700;color:#0077b6;letter-spacing:.1em;text-transform:uppercase;line-height:1.5;">CDSCO<br>AI Review System</div>
+  <div style="width:1px;height:20px;background:rgba(10,34,64,0.1);margin:0 4px;"></div>
+  <div style="font-size:12px;color:#475569;font-weight:500;">Regulatory review, <span style='color:#FF9933;'>reimagined for India.</span></div>
 </div>
 """, unsafe_allow_html=True)
 with tb2:
@@ -529,7 +551,7 @@ t0,t1,t2,t3,t4,t5,t6 = st.tabs([
 
 # ═══ HOME ════════════════════════════════════════════════════════════════════
 with t0:
-    st.markdown("<div style='font-size:10px;font-weight:700;color:rgba(255,255,255,0.6);letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;'>Available features &mdash; select to begin</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:10px;font-weight:700;color:#64748b;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;'>Available features &mdash; select to begin</div>", unsafe_allow_html=True)
     _tab_names = ["Anonymisation","Summarisation","Completeness","Classification","Comparison","Inspection Report"]
     _home_cols = st.columns(3, gap="medium")
     for _i, (_fnum, _fname, _ftitle, _fdesc) in enumerate(FEATURES):

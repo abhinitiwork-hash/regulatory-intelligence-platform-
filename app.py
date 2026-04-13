@@ -335,160 +335,127 @@ ICON_COLORS = [
 ]
 
 if not st.session_state["logged_in"]:
-    import streamlit.components.v1 as _cv1_login
-    st.markdown("<style>.stApp{background-color:#f0f3f8 !important;}</style>", unsafe_allow_html=True)
-
-    _login_html = """
-<!DOCTYPE html>
-<html>
-<head>
+    st.markdown("""
 <style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:'Inter',system-ui,sans-serif;}
-body{background:#f0f3f8;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
-.shell{display:flex;width:100%;max-width:960px;min-height:560px;border-radius:16px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,0.14);}
-.left{flex:1;background:#f0f3f8;padding:40px 44px;display:flex;flex-direction:column;}
-.right{width:380px;background:linear-gradient(145deg,#0077b6 0%,#005a8a 50%,#023e6e 100%);padding:36px 32px;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;}
-.right::before{content:'';position:absolute;top:-60px;right:-60px;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,0.05);pointer-events:none;}
-.wordmark{display:flex;align-items:center;gap:12px;margin-bottom:24px;}
-.wm-name{font-size:36px;font-weight:900;color:#0a2240;letter-spacing:-1px;line-height:1;}
-.wm-sep{width:1px;height:26px;background:rgba(10,34,64,0.2);}
-.wm-sub{font-size:9px;font-weight:700;color:#0077b6;letter-spacing:.1em;text-transform:uppercase;line-height:1.5;}
-.tagline{font-size:18px;font-weight:700;color:#0a2240;line-height:1.3;margin-bottom:24px;letter-spacing:-0.2px;}
-.tagline span{color:#FF9933;}
-.carousel-label{font-size:9px;font-weight:700;color:#0a2240;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;}
-.slide{display:none;}.slide.active{display:block;}
-.feat-num{font-size:16px;font-weight:800;color:#0077b6;margin-bottom:6px;letter-spacing:-0.1px;}
-.feat-title{font-size:14px;font-weight:600;color:#0a2240;margin-bottom:18px;line-height:1.3;}
-.process{display:flex;align-items:center;gap:0;margin-bottom:20px;}
-.proc-step{display:flex;flex-direction:column;align-items:center;flex:1;}
-.proc-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:6px;}
-.proc-lbl{font-size:9px;font-weight:600;color:#0a2240;text-align:center;line-height:1.3;}
-.proc-arr{color:#94a3b8;font-size:14px;padding:0 6px;margin-bottom:20px;flex-shrink:0;}
-.dots{display:flex;gap:6px;margin-bottom:14px;}
-.dot{width:8px;height:8px;border-radius:50%;background:#cbd5e1;cursor:pointer;border:none;padding:0;}
-.dot.active{width:24px;border-radius:4px;background:#0a2240;}
-.comp-footer{display:flex;gap:12px;flex-wrap:wrap;margin-top:auto;padding-top:20px;}
-.cf{font-size:9px;font-weight:600;color:#0a2240;display:flex;align-items:center;gap:4px;}
-.cf-dot{width:5px;height:5px;border-radius:50%;background:#22c55e;}
-.login-label{font-size:10px;font-weight:700;color:rgba(255,255,255,0.6);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;}
-.login-card{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:12px;padding:20px;margin-bottom:20px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.3);}
-.login-title{font-size:20px;font-weight:800;color:white;margin-bottom:3px;}
-.login-sub{font-size:11px;color:rgba(255,255,255,0.55);line-height:1.5;}
-.field-lbl{font-size:11px;font-weight:600;color:white;margin-bottom:5px;margin-top:14px;display:block;}
-.field{width:100%;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:8px;padding:10px 14px;font-size:13px;color:white;outline:none;}
-.field::placeholder{color:rgba(255,255,255,0.4);}
-.signin-btn{width:100%;background:#FF9933;border:none;border-radius:8px;padding:12px;font-size:13px;font-weight:700;color:#0a2240;cursor:pointer;margin-top:16px;letter-spacing:.02em;}
-.signin-btn:hover{background:#e8871e;}
-.forgot{font-size:10px;color:rgba(255,255,255,0.45);text-align:center;margin-top:10px;}
-.stage-note{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.16);border-radius:8px;padding:10px 12px;margin-top:14px;}
-.stage-note strong{font-size:11px;color:white;display:block;margin-bottom:2px;}
-.stage-note p{font-size:10px;color:rgba(255,255,255,0.55);line-height:1.6;margin:0;}
-.disclaimer{font-size:9px;color:rgba(255,255,255,0.25);text-align:center;margin-top:14px;line-height:1.6;}
-.err{color:#fca5a5;font-size:11px;margin-top:6px;display:none;}
+.stApp{background-color:#f0f3f8 !important;}
+/* Override Streamlit input styles inside login panel */
+[data-testid="stTextInput"] input {
+    background:rgba(255,255,255,0.15) !important;
+    border:1px solid rgba(255,255,255,0.35) !important;
+    border-radius:8px !important;
+    color:white !important;
+    font-size:13px !important;
+    padding:10px 14px !important;
+}
+[data-testid="stTextInput"] input::placeholder { color:rgba(255,255,255,0.45) !important; }
+[data-testid="stTextInput"] label { color:white !important; font-size:11px !important; font-weight:600 !important; }
+[data-testid="stTextInput"] input:focus { border-color:rgba(255,153,51,0.7) !important; box-shadow:0 0 0 2px rgba(255,153,51,0.2) !important; }
+.login-signin-btn > button {
+    width:100% !important;
+    background:#FF9933 !important;
+    color:#0a2240 !important;
+    border:none !important;
+    border-radius:8px !important;
+    font-size:13px !important;
+    font-weight:700 !important;
+    padding:12px !important;
+    letter-spacing:.02em !important;
+}
+.login-signin-btn > button:hover { background:#e8871e !important; }
 </style>
-</head>
-<body>
-<div class="shell">
-  <div class="left">
-    <div class="wordmark">
-      <div class="wm-name">Nirnay</div>
-      <div class="wm-sep"></div>
-      <div class="wm-sub">CDSCO<br>AI Review System</div>
-    </div>
-    <div class="tagline">Regulatory review,<br><span>reimagined for India.</span></div>
-    <div class="carousel-label">What Nirnay can do for you</div>
-    <div class="slide active" data-idx="0"><div class="feat-num">01 &middot; Anonymisation</div><div class="feat-title">Protect sensitive information</div></div>
-    <div class="slide" data-idx="1"><div class="feat-num">02 &middot; Summarisation</div><div class="feat-title">Get a quick document summary</div></div>
-    <div class="slide" data-idx="2"><div class="feat-num">03 &middot; Completeness</div><div class="feat-title">Check if an application is complete</div></div>
-    <div class="slide" data-idx="3"><div class="feat-num">04 &middot; Classification</div><div class="feat-title">Classify adverse event severity</div></div>
-    <div class="slide" data-idx="4"><div class="feat-num">05 &middot; Comparison</div><div class="feat-title">See what changed between versions</div></div>
-    <div class="slide" data-idx="5"><div class="feat-num">06 &middot; Inspection</div><div class="feat-title">Generate a formal inspection report</div></div>
-    <div class="process">
-      <div class="proc-step">
-        <div class="proc-icon" style="background:#e0f2fe;border:1.5px solid #bae6fd;">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="4" y="2" width="12" height="16" rx="2" fill="#0369a1" opacity=".15"/><rect x="4" y="2" width="12" height="16" rx="2" stroke="#0369a1" stroke-width="1.5"/><line x1="7" y1="7" x2="13" y2="7" stroke="#0369a1" stroke-width="1.2" stroke-linecap="round"/><line x1="7" y1="10" x2="13" y2="10" stroke="#0369a1" stroke-width="1.2" stroke-linecap="round"/><line x1="7" y1="13" x2="10" y2="13" stroke="#0369a1" stroke-width="1.2" stroke-linecap="round"/></svg>
-        </div>
-        <div class="proc-lbl">Upload<br>document</div>
+""", unsafe_allow_html=True)
+
+    _left_col, _right_col = st.columns([1.1, 0.9], gap="small")
+
+    with _left_col:
+        st.markdown("""
+<div style="background:#f0f3f8;border-radius:16px 0 0 16px;padding:40px 44px;min-height:560px;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,0.14);">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
+    <div style="font-size:36px;font-weight:900;color:#0a2240;letter-spacing:-1px;line-height:1;">Nirnay</div>
+    <div style="width:1px;height:26px;background:rgba(10,34,64,0.2);"></div>
+    <div style="font-size:9px;font-weight:700;color:#0077b6;letter-spacing:.1em;text-transform:uppercase;line-height:1.5;">CDSCO<br>AI Review System</div>
+  </div>
+  <div style="font-size:18px;font-weight:700;color:#0a2240;line-height:1.3;margin-bottom:24px;letter-spacing:-0.2px;">Regulatory review,<br><span style="color:#FF9933;">reimagined for India.</span></div>
+  <div style="font-size:9px;font-weight:700;color:#0a2240;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;">What Nirnay can do for you</div>
+  <div style="margin-bottom:18px;">
+    <div style="font-size:16px;font-weight:800;color:#0077b6;margin-bottom:4px;">01 · Anonymisation &nbsp;|&nbsp; 02 · Summarisation &nbsp;|&nbsp; 03 · Completeness</div>
+    <div style="font-size:16px;font-weight:800;color:#0077b6;margin-bottom:10px;">04 · Classification &nbsp;|&nbsp; 05 · Comparison &nbsp;|&nbsp; 06 · Inspection Report</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:0;margin-bottom:20px;">
+    <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
+      <div style="width:44px;height:44px;border-radius:10px;background:#e0f2fe;border:1.5px solid #bae6fd;display:flex;align-items:center;justify-content:center;margin-bottom:6px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="4" y="2" width="12" height="16" rx="2" fill="#0369a1" opacity=".15"/><rect x="4" y="2" width="12" height="16" rx="2" stroke="#0369a1" stroke-width="1.5"/><line x1="7" y1="7" x2="13" y2="7" stroke="#0369a1" stroke-width="1.2" stroke-linecap="round"/></svg>
       </div>
-      <div class="proc-arr">&#8594;</div>
-      <div class="proc-step">
-        <div class="proc-icon" style="background:#0a2240;border:1.5px solid #0a2240;">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="#FF9933" stroke-width="1.5"/><circle cx="12" cy="12" r="3" fill="#FF9933"/><line x1="12" y1="4" x2="12" y2="7" stroke="#FF9933" stroke-width="1.5" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="20" stroke="#FF9933" stroke-width="1.5" stroke-linecap="round"/><line x1="4" y1="12" x2="7" y2="12" stroke="#FF9933" stroke-width="1.5" stroke-linecap="round"/><line x1="17" y1="12" x2="20" y2="12" stroke="#FF9933" stroke-width="1.5" stroke-linecap="round"/></svg>
-        </div>
-        <div class="proc-lbl">Nirnay<br>processes</div>
-      </div>
-      <div class="proc-arr">&#8594;</div>
-      <div class="proc-step">
-        <div class="proc-icon" style="background:#dcfce7;border:1.5px solid #bbf7d0;">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" fill="#166534" opacity=".1"/><circle cx="12" cy="12" r="9" stroke="#166534" stroke-width="1.5"/><path d="M8 12l3 3 5-5" stroke="#166534" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
-        <div class="proc-lbl">Decision<br>ready</div>
-      </div>
+      <div style="font-size:9px;font-weight:600;color:#0a2240;text-align:center;">Upload<br>document</div>
     </div>
-    <div class="dots" id="dots">
-      <button class="dot active" onclick="goTo(0)"></button>
-      <button class="dot" onclick="goTo(1)"></button>
-      <button class="dot" onclick="goTo(2)"></button>
-      <button class="dot" onclick="goTo(3)"></button>
-      <button class="dot" onclick="goTo(4)"></button>
-      <button class="dot" onclick="goTo(5)"></button>
+    <div style="color:#94a3b8;font-size:14px;padding:0 6px;margin-bottom:20px;">→</div>
+    <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
+      <div style="width:44px;height:44px;border-radius:10px;background:#0a2240;border:1.5px solid #0a2240;display:flex;align-items:center;justify-content:center;margin-bottom:6px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="#FF9933" stroke-width="1.5"/><circle cx="12" cy="12" r="3" fill="#FF9933"/></svg>
+      </div>
+      <div style="font-size:9px;font-weight:600;color:#0a2240;text-align:center;">Nirnay<br>processes</div>
     </div>
-    <div class="comp-footer">
-      <div class="cf"><div class="cf-dot"></div>DPDP Act 2023</div>
-      <div class="cf"><div class="cf-dot"></div>CDSCO Schedule Y</div>
-      <div class="cf"><div class="cf-dot"></div>ICMR Guidelines</div>
-      <div class="cf"><div class="cf-dot"></div>MeitY AI Ethics</div>
+    <div style="color:#94a3b8;font-size:14px;padding:0 6px;margin-bottom:20px;">→</div>
+    <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
+      <div style="width:44px;height:44px;border-radius:10px;background:#dcfce7;border:1.5px solid #bbf7d0;display:flex;align-items:center;justify-content:center;margin-bottom:6px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#166534" stroke-width="1.5"/><path d="M8 12l3 3 5-5" stroke="#166534" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div style="font-size:9px;font-weight:600;color:#0a2240;text-align:center;">Decision<br>ready</div>
     </div>
   </div>
-  <div class="right">
-    <div class="login-label">Authorised access only</div>
-    <div class="login-card">
-      <div class="login-title">Sign in to Nirnay</div>
-      <div class="login-sub">CDSCO regulatory review platform<br>Stage 1 &middot; AI Hackathon 2026</div>
-    </div>
-    <label class="field-lbl">Username</label>
-    <input class="field" id="uname" placeholder="Enter username" autocomplete="username"/>
-    <label class="field-lbl">Password</label>
-    <input class="field" id="pwd" placeholder="Enter password" type="password" autocomplete="current-password"/>
-    <div class="err" id="err">Invalid credentials. Please try again.</div>
-    <button class="signin-btn" onclick="doLogin()">Sign In &#8594;</button>
-    <div class="forgot">Forgot credentials? Contact your administrator</div>
-    <div class="stage-note">
-      <strong>Stage 1 Demo</strong>
-      <p>Use the credentials provided by your team lead to access all regulatory review features.</p>
-    </div>
-    <div class="disclaimer">Authorised CDSCO personnel only.<br>All sessions are logged for compliance purposes.</div>
+  <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:auto;padding-top:20px;">
+    <div style="font-size:9px;font-weight:600;color:#0a2240;display:flex;align-items:center;gap:4px;"><div style="width:5px;height:5px;border-radius:50%;background:#22c55e;"></div>DPDP Act 2023</div>
+    <div style="font-size:9px;font-weight:600;color:#0a2240;display:flex;align-items:center;gap:4px;"><div style="width:5px;height:5px;border-radius:50%;background:#22c55e;"></div>CDSCO Schedule Y</div>
+    <div style="font-size:9px;font-weight:600;color:#0a2240;display:flex;align-items:center;gap:4px;"><div style="width:5px;height:5px;border-radius:50%;background:#22c55e;"></div>ICMR Guidelines</div>
+    <div style="font-size:9px;font-weight:600;color:#0a2240;display:flex;align-items:center;gap:4px;"><div style="width:5px;height:5px;border-radius:50%;background:#22c55e;"></div>MeitY AI Ethics</div>
   </div>
 </div>
-<script>
-var cur=0;
-function goTo(n){
-  document.querySelectorAll('.slide').forEach(function(s,i){s.classList.toggle('active',i===n);});
-  document.querySelectorAll('.dot').forEach(function(d,i){d.classList.toggle('active',i===n);});
-  cur=n;
-}
-setInterval(function(){goTo((cur+1)%6);},3000);
-function doLogin(){
-  var u=document.getElementById('uname').value.trim();
-  var p=document.getElementById('pwd').value;
-  var err=document.getElementById('err');
-  if(u==='admin'&&p==='nirnay2026'){
-    window.parent.postMessage({type:'streamlit:setComponentValue',value:'LOGIN_OK'},'*');
-  } else {
-    err.style.display='block';
-  }
-}
-document.getElementById('pwd').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
-document.getElementById('uname').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('pwd').focus();});
-</script>
-</body>
-</html>
-"""
+""", unsafe_allow_html=True)
 
-    login_result = _cv1_login.html(_login_html, height=640, scrolling=False)
-    if login_result == "LOGIN_OK":
-        st.session_state["logged_in"] = True
-        st.rerun()
+    with _right_col:
+        st.markdown("""
+<div style="background:linear-gradient(145deg,#0077b6 0%,#005a8a 50%,#023e6e 100%);border-radius:0 16px 16px 0;padding:36px 32px;min-height:560px;position:relative;overflow:hidden;">
+<div style="position:absolute;top:-60px;right:-60px;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,0.05);pointer-events:none;"></div>
+<div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.6);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;">Authorised access only</div>
+<div style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:12px;padding:20px;margin-bottom:20px;">
+  <div style="font-size:20px;font-weight:800;color:white;margin-bottom:3px;">Sign in to Nirnay</div>
+  <div style="font-size:11px;color:rgba(255,255,255,0.55);line-height:1.5;">CDSCO regulatory review platform<br>Stage 1 · AI Hackathon 2026</div>
+</div>
+</div>
+""", unsafe_allow_html=True)
+
+        # Native Streamlit inputs — these actually communicate with Python
+        _uname = st.text_input("Username", placeholder="Enter username", key="login_uname")
+        _pwd   = st.text_input("Password", placeholder="Enter password", type="password", key="login_pwd")
+
+        if "_login_failed" not in st.session_state:
+            st.session_state["_login_failed"] = False
+
+        if st.session_state["_login_failed"]:
+            st.markdown('<div style="color:#fca5a5;font-size:12px;margin:-8px 0 8px;">⚠ Invalid credentials. Please try again.</div>', unsafe_allow_html=True)
+
+        st.markdown('<div class="login-signin-btn">', unsafe_allow_html=True)
+        _do_login = st.button("Sign In →", key="login_btn", use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        st.markdown('<div style="font-size:10px;color:rgba(255,255,255,0.45);text-align:center;margin-top:2px;">Forgot credentials? Contact your administrator</div>', unsafe_allow_html=True)
+        st.markdown("""
+<div style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.16);border-radius:8px;padding:10px 12px;margin-top:14px;">
+  <strong style="font-size:11px;color:white;display:block;margin-bottom:2px;">Stage 1 Demo</strong>
+  <p style="font-size:10px;color:rgba(255,255,255,0.55);line-height:1.6;margin:0;">Use the credentials provided by your team lead to access all regulatory review features.</p>
+</div>
+<div style="font-size:9px;color:rgba(255,255,255,0.25);text-align:center;margin-top:14px;line-height:1.6;">Authorised CDSCO personnel only.<br>All sessions are logged for compliance purposes.</div>
+""", unsafe_allow_html=True)
+
+        if _do_login:
+            if _uname.strip() == VALID_USER and _pwd == VALID_PASS:
+                st.session_state["logged_in"] = True
+                st.session_state["_login_failed"] = False
+                st.rerun()
+            else:
+                st.session_state["_login_failed"] = True
+                st.rerun()
+
     st.stop()
 
 # ═══ LOGGED IN — show post-login home then full app ════════════════════════════
@@ -550,6 +517,25 @@ t0,t1,t2,t3,t4,t5,t6 = st.tabs([
 ])
 
 # ═══ HOME ════════════════════════════════════════════════════════════════════
+# Inject JS to auto-click the target tab if active_tab is set
+_active_tab_idx = st.session_state.get("active_tab", 0)
+if _active_tab_idx > 0:
+    st.session_state["active_tab"] = 0  # reset so it only fires once
+    import streamlit.components.v1 as _cv1_tabs
+    _cv1_tabs.html(f"""
+<script>
+(function(){{
+  var idx = {_active_tab_idx};
+  function clickTab(){{
+    var tabs = window.parent.document.querySelectorAll('[data-baseweb="tab"]');
+    if(tabs.length > idx){{ tabs[idx].click(); }}
+    else {{ setTimeout(clickTab, 100); }}
+  }}
+  setTimeout(clickTab, 200);
+}})();
+</script>
+""", height=0)
+
 with t0:
     st.markdown("<div style='font-size:10px;font-weight:700;color:#64748b;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;'>Available features &mdash; select to begin</div>", unsafe_allow_html=True)
     _tab_names = ["Anonymisation","Summarisation","Completeness","Classification","Comparison","Inspection Report"]

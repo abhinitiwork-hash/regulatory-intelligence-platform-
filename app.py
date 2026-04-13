@@ -36,7 +36,7 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 html,body,[class*="css"]{font-family:'Inter',sans-serif;}
 #MainMenu,footer,header{visibility:hidden;}
-.stApp{background-color:#f4f7fb;}
+.stApp{background-color:#0077b6;}
 
 section[data-testid="stSidebar"]{background:linear-gradient(180deg,#001f5b 0%,#003087 60%,#004db3 100%);}
 section[data-testid="stSidebar"] * {color:white!important;}
@@ -134,12 +134,16 @@ section[data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"]{backgrou
 # This is the KEY fix: we use session_state to hold extracted text
 # so it persists across reruns when the Run button is clicked
 for k in ["anon_text","sum_text","comp_text","class_text","v1_text","v2_text",
-          "dup_files","anon_done","sum_done","comp_done","class_done"]:
+          "dup_files","anon_done","sum_done","comp_done","class_done","logged_in","carousel_idx"]:
     if k not in st.session_state:
         if k == "dup_files":
             st.session_state[k] = {}
         elif k.endswith("_done"):
             st.session_state[k] = False
+        elif k == "logged_in":
+            st.session_state[k] = False
+        elif k == "carousel_idx":
+            st.session_state[k] = 0
         else:
             st.session_state[k] = ""
 
@@ -288,6 +292,199 @@ def run_anonymisation(text):
 
 # ── SIDEBAR REMOVED — navigation via tabs, brand in hero ─────────────────────
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# LOGIN GATE — show landing page if not logged in
+# ═══════════════════════════════════════════════════════════════════════════════
+VALID_USER = "admin"
+VALID_PASS = "nirnay2026"
+
+FEATURES = [
+    ("01", "Anonymisation",    "Protect sensitive information",
+     "Removes patient names, IDs, phone numbers, and dates — full DPDP Act 2023 audit log."),
+    ("02", "Summarisation",    "Get a quick document summary",
+     "Extracts key decisions, actions, and findings from SAE reports and checklists."),
+    ("03", "Completeness",     "Check if an application is complete",
+     "Verifies all 20 mandatory Schedule Y fields. Recommends approve, return, or reject."),
+    ("04", "Classification",   "Classify how serious an adverse event is",
+     "Identifies death, disability, or hospitalisation and flags duplicate SAE reports."),
+    ("05", "Comparison",       "See what changed between two document versions",
+     "Highlights every change and marks which ones matter for regulatory approval."),
+    ("06", "Inspection Report","Turn inspection notes into a formal report",
+     "Converts raw site observations into a CDSCO GCP report with risk grading."),
+]
+
+ICONS = [
+    """<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#38bdf8" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="#38bdf8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>""",
+    """<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="3" stroke="#34d399" stroke-width="1.8"/><line x1="8" y1="9" x2="16" y2="9" stroke="#34d399" stroke-width="1.5" stroke-linecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke="#34d399" stroke-width="1.5" stroke-linecap="round"/><line x1="8" y1="15" x2="12" y2="15" stroke="#34d399" stroke-width="1.5" stroke-linecap="round"/></svg>""",
+    """<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 11l3 3L22 4" stroke="#c084fc" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" stroke="#c084fc" stroke-width="1.8" stroke-linecap="round"/></svg>""",
+    """<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#fb923c" stroke-width="1.8"/><line x1="12" y1="8" x2="12" y2="12" stroke="#fb923c" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16" r="1.2" fill="#fb923c"/></svg>""",
+    """<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="2" y="6" width="8" height="12" rx="2" stroke="#818cf8" stroke-width="1.8"/><rect x="14" y="6" width="8" height="12" rx="2" stroke="#818cf8" stroke-width="1.8"/><path d="M10 12h4M12 10l2 2-2 2" stroke="#818cf8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>""",
+    """<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="5" y="2" width="14" height="20" rx="2" stroke="#fb7185" stroke-width="1.8"/><line x1="9" y1="7" x2="15" y2="7" stroke="#fb7185" stroke-width="1.4" stroke-linecap="round"/><line x1="9" y1="11" x2="15" y2="11" stroke="#fb7185" stroke-width="1.4" stroke-linecap="round"/><line x1="9" y1="15" x2="12" y2="15" stroke="#fb7185" stroke-width="1.4" stroke-linecap="round"/><circle cx="17" cy="17" r="4" fill="#0a2240" stroke="#fb7185" stroke-width="1.4"/><path d="M15.5 17l1 1 2-2" stroke="#fb7185" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>""",
+]
+
+ICON_COLORS = [
+    "rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.2)",
+    "rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2)",
+    "rgba(192,132,252,0.1);border:1px solid rgba(192,132,252,0.2)",
+    "rgba(251,146,60,0.1);border:1px solid rgba(251,146,60,0.2)",
+    "rgba(129,140,248,0.1);border:1px solid rgba(129,140,248,0.2)",
+    "rgba(251,113,133,0.1);border:1px solid rgba(251,113,133,0.2)",
+]
+
+if not st.session_state["logged_in"]:
+    # ── LANDING PAGE CSS ──────────────────────────────────────────────────────
+    st.markdown("""
+<style>
+.stApp{background-color:#0077b6 !important;}
+.lp-shell{display:flex;min-height:92vh;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.18);}
+.lp-left{flex:1.2;background:#f0f3f8;padding:40px 48px;display:flex;flex-direction:column;}
+.lp-right{width:380px;background:linear-gradient(145deg,#0077b6 0%,#005f8e 50%,#023e6e 100%);padding:40px 36px;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;}
+.lp-right::after{content:'';position:absolute;top:-80px;right:-80px;width:260px;height:260px;border-radius:50%;background:rgba(255,255,255,0.04);pointer-events:none;}
+</style>
+""", unsafe_allow_html=True)
+
+    # ── LAYOUT: left + right ──────────────────────────────────────────────────
+    lp_l, lp_r = st.columns([1.2, 1])
+
+    with lp_l:
+        # Wordmark
+        st.markdown("""
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:28px;">
+  <div style="font-size:26px;font-weight:900;color:#0a2240;letter-spacing:-0.8px;">Nirnay</div>
+  <div style="width:1px;height:20px;background:rgba(10,34,64,0.2);"></div>
+  <div style="font-size:9px;font-weight:700;color:#0077b6;letter-spacing:.1em;text-transform:uppercase;line-height:1.5;">CDSCO<br>AI Review System</div>
+</div>
+""", unsafe_allow_html=True)
+
+        # Tagline
+        st.markdown("""
+<div style="font-size:26px;font-weight:800;color:#0a2240;letter-spacing:-0.4px;line-height:1.2;margin-bottom:28px;">Regulatory review,<br><span style="color:#FF9933;">reimagined for India.</span></div>
+""", unsafe_allow_html=True)
+
+        # Carousel label
+        st.markdown("""
+<div style="font-size:9px;font-weight:700;color:#0a2240;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;">What Nirnay can do for you</div>
+""", unsafe_allow_html=True)
+
+        # Feature name (carousel current item)
+        idx = st.session_state["carousel_idx"]
+        num, feat, title, _ = FEATURES[idx]
+        st.markdown(f"""
+<div style="font-size:18px;font-weight:900;color:#FF9933;margin-bottom:18px;letter-spacing:-0.2px;">{num} · {feat}</div>
+<div style="font-size:13px;font-weight:600;color:#0a2240;margin-bottom:18px;line-height:1.3;">{title}</div>
+""", unsafe_allow_html=True)
+
+        # SVG process illustration
+        st.markdown(f"""
+<div style="display:flex;align-items:center;gap:0;margin-bottom:22px;">
+  <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
+    <div style="width:46px;height:46px;border-radius:10px;background:#e0f2fe;border:1.5px solid #bae6fd;display:flex;align-items:center;justify-content:center;margin-bottom:6px;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4" y="2" width="12" height="16" rx="2" fill="#0369a1" opacity=".15"/><rect x="4" y="2" width="12" height="16" rx="2" stroke="#0369a1" stroke-width="1.5"/><line x1="7" y1="7" x2="13" y2="7" stroke="#0369a1" stroke-width="1.2" stroke-linecap="round"/><line x1="7" y1="10" x2="13" y2="10" stroke="#0369a1" stroke-width="1.2" stroke-linecap="round"/><line x1="7" y1="13" x2="10" y2="13" stroke="#0369a1" stroke-width="1.2" stroke-linecap="round"/><path d="M14 2v4h4" stroke="#0369a1" stroke-width="1.2" fill="none"/></svg>
+    </div>
+    <div style="font-size:10px;font-weight:600;color:#0a2240;text-align:center;line-height:1.3;">Upload<br>document</div>
+  </div>
+  <div style="color:#94a3b8;font-size:16px;padding:0 8px;margin-bottom:22px;">→</div>
+  <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
+    <div style="width:46px;height:46px;border-radius:10px;background:#0a2240;border:1.5px solid #0a2240;display:flex;align-items:center;justify-content:center;margin-bottom:6px;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="#FF9933" stroke-width="1.5"/><circle cx="12" cy="12" r="3" fill="#FF9933"/><line x1="12" y1="4" x2="12" y2="7" stroke="#FF9933" stroke-width="1.5" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="20" stroke="#FF9933" stroke-width="1.5" stroke-linecap="round"/><line x1="4" y1="12" x2="7" y2="12" stroke="#FF9933" stroke-width="1.5" stroke-linecap="round"/><line x1="17" y1="12" x2="20" y2="12" stroke="#FF9933" stroke-width="1.5" stroke-linecap="round"/></svg>
+    </div>
+    <div style="font-size:10px;font-weight:600;color:#0a2240;text-align:center;line-height:1.3;">Nirnay<br>processes</div>
+  </div>
+  <div style="color:#94a3b8;font-size:16px;padding:0 8px;margin-bottom:22px;">→</div>
+  <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
+    <div style="width:46px;height:46px;border-radius:10px;background:#dcfce7;border:1.5px solid #bbf7d0;display:flex;align-items:center;justify-content:center;margin-bottom:6px;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" fill="#166534" opacity=".1"/><circle cx="12" cy="12" r="9" stroke="#166534" stroke-width="1.5"/><path d="M8 12l3 3 5-5" stroke="#166534" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div style="font-size:10px;font-weight:600;color:#0a2240;text-align:center;line-height:1.3;">Decision<br>ready</div>
+  </div>
+</div>
+""", unsafe_allow_html=True)
+
+        # Dots
+        dots_html = '<div style="display:flex;gap:7px;margin-bottom:14px;">'
+        for i in range(6):
+            if i == idx:
+                dots_html += '<div style="width:24px;height:8px;border-radius:4px;background:#0a2240;"></div>'
+            else:
+                dots_html += '<div style="width:8px;height:8px;border-radius:50%;background:#cbd5e1;"></div>'
+        dots_html += '</div>'
+        st.markdown(dots_html, unsafe_allow_html=True)
+
+        # Arrow buttons
+        arr1, arr2, _ = st.columns([1,1,5])
+        with arr1:
+            if st.button("←", key="carousel_prev"):
+                st.session_state["carousel_idx"] = (idx - 1) % 6
+                st.rerun()
+        with arr2:
+            if st.button("→", key="carousel_next"):
+                st.session_state["carousel_idx"] = (idx + 1) % 6
+                st.rerun()
+
+        # Compliance footer
+        st.markdown("""
+<div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:20px;">
+  <div style="font-size:9px;font-weight:600;color:#0a2240;display:flex;align-items:center;gap:4px;"><div style="width:5px;height:5px;border-radius:50%;background:#22c55e;"></div>DPDP Act 2023</div>
+  <div style="font-size:9px;font-weight:600;color:#0a2240;display:flex;align-items:center;gap:4px;"><div style="width:5px;height:5px;border-radius:50%;background:#22c55e;"></div>CDSCO Schedule Y</div>
+  <div style="font-size:9px;font-weight:600;color:#0a2240;display:flex;align-items:center;gap:4px;"><div style="width:5px;height:5px;border-radius:50%;background:#22c55e;"></div>ICMR Guidelines</div>
+  <div style="font-size:9px;font-weight:600;color:#0a2240;display:flex;align-items:center;gap:4px;"><div style="width:5px;height:5px;border-radius:50%;background:#22c55e;"></div>MeitY AI Ethics</div>
+</div>
+""", unsafe_allow_html=True)
+
+    with lp_r:
+        st.markdown("""
+<div style="background:linear-gradient(145deg,#0077b6,#023e6e);border-radius:14px;padding:28px 24px;">
+<div style="background:rgba(255,255,255,0.13);border:1px solid rgba(255,255,255,0.28);border-radius:12px;padding:24px 20px;box-shadow:0 8px 32px rgba(0,0,0,0.2),inset 0 1px 0 rgba(255,255,255,0.35);">
+<div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.65);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;">Authorised access only</div>
+<div style="font-size:19px;font-weight:800;color:white;margin-bottom:3px;">Sign in to Nirnay</div>
+<div style="font-size:11px;color:rgba(255,255,255,0.55);margin-bottom:22px;line-height:1.5;">CDSCO regulatory review platform<br>Stage 1 &middot; AI Hackathon 2026</div>
+</div>
+</div>
+""", unsafe_allow_html=True)
+
+        username = st.text_input("Username", placeholder="Enter username", key="login_user",
+                                  label_visibility="visible")
+        password = st.text_input("Password", placeholder="Enter password", key="login_pass",
+                                  type="password", label_visibility="visible")
+
+        if st.button("Sign In →", type="primary", use_container_width=True, key="login_btn"):
+            if username == VALID_USER and password == VALID_PASS:
+                st.session_state["logged_in"] = True
+                st.rerun()
+            else:
+                st.error("Invalid credentials. Please try again.")
+
+        st.markdown("""
+<div style="text-align:center;margin-top:8px;">
+  <span style="font-size:10px;color:rgba(255,255,255,0.4);">Forgot credentials? Contact your administrator</span>
+</div>
+<div style="border-top:1px solid rgba(255,255,255,0.15);margin:16px 0;"></div>
+<div style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);border-radius:8px;padding:10px 12px;">
+  <div style="font-size:11px;font-weight:700;color:white;margin-bottom:3px;">Stage 1 Demo</div>
+  <div style="font-size:10px;color:rgba(255,255,255,0.6);line-height:1.6;">Use the credentials provided by your team lead to access all regulatory review features.</div>
+</div>
+<div style="font-size:9px;color:rgba(255,255,255,0.3);text-align:center;margin-top:14px;line-height:1.6;">Authorised CDSCO personnel only.<br>All sessions are logged for compliance purposes.</div>
+""", unsafe_allow_html=True)
+
+    st.stop()
+
+# ═══ LOGGED IN — show post-login home then full app ════════════════════════════
+# ── TOP BAR ──────────────────────────────────────────────────────────────────
+tb1, tb2 = st.columns([3,1])
+with tb1:
+    st.markdown("""
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+  <div style="font-size:22px;font-weight:900;color:white;letter-spacing:-0.6px;">Nirnay</div>
+  <div style="width:1px;height:18px;background:rgba(255,255,255,0.3);"></div>
+  <div style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.7);letter-spacing:.1em;text-transform:uppercase;line-height:1.5;">CDSCO<br>AI Review System</div>
+  <div style="width:1px;height:18px;background:rgba(255,255,255,0.2);margin:0 4px;"></div>
+  <div style="font-size:12px;color:rgba(255,255,255,0.6);font-weight:500;">Regulatory review, reimagined for India.</div>
+</div>
+""", unsafe_allow_html=True)
+with tb2:
+    if st.button("Sign out", key="signout"):
+        st.session_state["logged_in"] = False
+        st.rerun()
 
 # ── HEADER ────────────────────────────────────────────────────────────────────
 # ── HERO BANNER ──────────────────────────────────────────────────────────────
@@ -409,45 +606,26 @@ t0,t1,t2,t3,t4,t5,t6 = st.tabs([
 
 # ═══ HOME ════════════════════════════════════════════════════════════════════
 with t0:
-    features = [
-        ("01", "Protect sensitive information",
-         "Upload any regulatory document. The system automatically finds and removes patient names, IDs, phone numbers, dates, and hospital records — and gives you a clean version safe to share.",
-         "Anonymisation", "f1"),
-        ("02", "Get a quick summary of any document",
-         "Upload an SAE report, SUGAM checklist, or meeting transcript. The system reads it and gives you a structured summary — decisions, action items, and key findings — in under a minute.",
-         "Summarisation", "f2"),
-        ("03", "Check if an application is complete",
-         "Upload a clinical trial application. The system checks all 20 mandatory Schedule Y fields and tells you what is present, what is missing, and whether to approve or return it.",
-         "Completeness", "f3"),
-        ("04", "Classify how serious an adverse event is",
-         "Upload an SAE report. The system tells you whether it is a death, disability, hospitalisation, or other case — and flags if the same case has already been reported.",
-         "Classification", "f4"),
-        ("05", "See what changed between two document versions",
-         "Upload an original and an updated filing. The system highlights every change and tells you which ones are significant for regulatory review and which are minor edits.",
-         "Comparison", "f5"),
-        ("06", "Turn inspection notes into a formal report",
-         "Paste raw observations from a site visit. The system converts them into a structured CDSCO inspection report with risk levels and corrective action deadlines.",
-         "Inspection Report", "f6"),
-    ]
-
-    st.markdown("<div style='font-size:9px;font-weight:700;color:#64748b;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;'>Available features — select to begin</div>", unsafe_allow_html=True)
-    cols = st.columns(3)
-    for i, (num, title, desc, tab_name, cls) in enumerate(features):
-        with cols[i % 3]:
+    st.markdown("<div style='font-size:10px;font-weight:700;color:rgba(255,255,255,0.6);letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;'>Available features &mdash; select to begin</div>", unsafe_allow_html=True)
+    _tab_names = ["Anonymisation","Summarisation","Completeness","Classification","Comparison","Inspection Report"]
+    _home_cols = st.columns(3, gap="medium")
+    for _i, (_fnum, _fname, _ftitle, _fdesc) in enumerate(FEATURES):
+        with _home_cols[_i % 3]:
             st.markdown(f"""
-            <div style="background:#0a2240;border-radius:8px;padding:16px 18px;margin-bottom:4px;
-                 position:relative;overflow:hidden;border-left:3px solid #FF9933;">
-              <div style="position:absolute;right:12px;bottom:-4px;font-size:44px;font-weight:900;
-                   color:rgba(255,255,255,0.04);line-height:1;pointer-events:none;">{num}</div>
-              <div style="font-size:9px;font-weight:700;color:rgba(255,153,51,0.7);letter-spacing:.1em;margin-bottom:6px;">{num} · {tab_name.upper()}</div>
-              <div style="font-size:12px;font-weight:700;color:white;margin-bottom:5px;line-height:1.3;">{title}</div>
-              <div style="font-size:10px;color:rgba(255,255,255,0.45);line-height:1.5;margin-bottom:10px;">{desc}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            if st.button(f"Open {tab_name} →", key=f"home_btn_{i}", use_container_width=True):
-                st.session_state["active_tab"] = i + 1
+<div style="background:#0a2240;border-radius:12px;padding:22px 20px;position:relative;overflow:hidden;min-height:220px;display:flex;flex-direction:column;justify-content:space-between;">
+  <div style="position:absolute;right:12px;bottom:-8px;font-size:68px;font-weight:900;color:rgba(255,255,255,0.03);line-height:1;pointer-events:none;user-select:none;">{_fnum}</div>
+  <div>
+    <div style="width:38px;height:38px;border-radius:10px;background:{ICON_COLORS[_i]};display:flex;align-items:center;justify-content:center;margin-bottom:10px;">{ICONS[_i]}</div>
+    <div style="font-size:17px;font-weight:900;color:#FF9933;letter-spacing:-0.2px;line-height:1.1;margin-bottom:5px;">{_fnum} &middot; {_fname}</div>
+    <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.85);line-height:1.4;margin-bottom:7px;">{_ftitle}</div>
+    <div style="font-size:10px;color:rgba(255,255,255,0.45);line-height:1.5;">{_fdesc}</div>
+  </div>
+  <div style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,153,51,0.1);border:1px solid rgba(255,153,51,0.28);border-radius:6px;padding:5px 12px;font-size:10px;font-weight:700;color:#FF9933;letter-spacing:.04em;margin-top:14px;align-self:flex-start;">Start &#8594;</div>
+</div>
+""", unsafe_allow_html=True)
+            if st.button(f"  {_tab_names[_i]}  ", key=f"home_card_{_i}", use_container_width=True):
+                st.session_state["active_tab"] = _i + 1
                 st.rerun()
-
 
 # ═══ FEATURE 1 — ANONYMISATION ═══════════════════════════════════════════════
 with t1:

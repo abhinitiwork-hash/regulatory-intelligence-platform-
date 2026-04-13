@@ -347,8 +347,17 @@ if not st.session_state["logged_in"]:
     padding:10px 14px !important;
 }
 [data-testid="stTextInput"] input::placeholder { color:#94a3b8 !important; }
-[data-testid="stTextInput"] label { color:#475569 !important; font-size:11px !important; font-weight:600 !important; text-transform:uppercase !important; letter-spacing:.06em !important; }
-[data-testid="stTextInput"] input:focus { border-color:#003087 !important; box-shadow:0 0 0 2px rgba(0,48,135,0.08) !important; }
+[data-testid="stTextInput"] label {
+    color:#475569 !important;
+    font-size:11px !important;
+    font-weight:600 !important;
+    text-transform:uppercase !important;
+    letter-spacing:.06em !important;
+}
+[data-testid="stTextInput"] input:focus {
+    border-color:#003087 !important;
+    box-shadow:0 0 0 2px rgba(0,48,135,0.08) !important;
+}
 .login-signin-btn > button {
     width:100% !important;
     background:#0a2240 !important;
@@ -418,31 +427,25 @@ if not st.session_state["logged_in"]:
 """, unsafe_allow_html=True)
 
     with _right_col:
-        st.markdown("""
-<div style="background:#f0f3f8;border-radius:0 16px 16px 0;padding:36px 32px;min-height:560px;">
-<div style="font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;">Authorised access only</div>
-<div style="background:white;border:1px solid #e2e8f0;border-radius:12px;padding:16px 18px;margin-bottom:20px;">
-  <div style="font-size:20px;font-weight:800;color:#0a2240;">Sign in</div>
-</div>
-</div>
-""", unsafe_allow_html=True)
-
-        _uname = st.text_input("Username", placeholder="Enter username", key="login_uname")
-        _pwd   = st.text_input("Password", placeholder="Enter password", type="password", key="login_pwd")
+        st.markdown('<p style="font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;">Authorised access only</p>', unsafe_allow_html=True)
+        st.markdown('<p style="font-size:20px;font-weight:800;color:#0a2240;margin-bottom:16px;">Sign in</p>', unsafe_allow_html=True)
 
         if "_login_failed" not in st.session_state:
             st.session_state["_login_failed"] = False
 
+        _uname = st.text_input("Username", placeholder="Enter username", key="login_uname")
+        _pwd   = st.text_input("Password", placeholder="Enter password", type="password", key="login_pwd")
+
         if st.session_state["_login_failed"]:
-            st.markdown('<div style="color:#dc2626;font-size:12px;margin:-8px 0 8px;">⚠ Invalid credentials. Please try again.</div>', unsafe_allow_html=True)
+            st.markdown('<p style="color:#dc2626;font-size:12px;margin:0;">⚠ Invalid credentials. Please try again.</p>', unsafe_allow_html=True)
 
         st.markdown('<div class="login-signin-btn">', unsafe_allow_html=True)
         _do_login = st.button("Sign In →", key="login_btn", use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-        st.markdown('<div style="font-size:10px;color:#94a3b8;text-align:center;margin-top:2px;">Forgot credentials? Contact your administrator</div>', unsafe_allow_html=True)
+        st.markdown('<p style="font-size:10px;color:#94a3b8;text-align:center;margin-top:4px;">Forgot credentials? Contact your administrator</p>', unsafe_allow_html=True)
         st.markdown("""
-<div style="background:white;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;margin-top:14px;">
+<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;margin-top:8px;">
   <p style="font-size:10px;color:#64748b;line-height:1.6;margin:0;text-align:center;">Authorised CDSCO personnel only.<br>All sessions are logged for compliance purposes.</p>
 </div>
 """, unsafe_allow_html=True)

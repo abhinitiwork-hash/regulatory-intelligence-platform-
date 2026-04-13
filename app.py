@@ -368,41 +368,47 @@ if not st.session_state["logged_in"]:
 
     with _left_col:
         st.markdown("""
-<div style="background:#f0f3f8;border-radius:16px 0 0 16px;padding:40px 44px;min-height:560px;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,0.14);">
-  <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
+<div style="background:#f0f3f8;border-radius:16px 0 0 16px;padding:36px 40px;min-height:560px;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,0.14);">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
     <div style="font-size:36px;font-weight:900;color:#0a2240;letter-spacing:-1px;line-height:1;">Nirnay</div>
     <div style="width:1px;height:26px;background:rgba(10,34,64,0.2);"></div>
     <div style="font-size:9px;font-weight:700;color:#0077b6;letter-spacing:.1em;text-transform:uppercase;line-height:1.5;">CDSCO<br>Review System</div>
   </div>
-  <div style="font-size:18px;font-weight:700;color:#0a2240;line-height:1.3;margin-bottom:24px;letter-spacing:-0.2px;">Regulatory review,<br><span style="color:#FF9933;">reimagined for India.</span></div>
-  <div style="font-size:9px;font-weight:700;color:#0a2240;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;">What Nirnay can do for you</div>
-  <div style="margin-bottom:18px;">
-    <div style="font-size:16px;font-weight:800;color:#0077b6;margin-bottom:4px;">01 · Anonymisation &nbsp;|&nbsp; 02 · Summarisation &nbsp;|&nbsp; 03 · Completeness</div>
-    <div style="font-size:16px;font-weight:800;color:#0077b6;margin-bottom:10px;">04 · Classification &nbsp;|&nbsp; 05 · Comparison &nbsp;|&nbsp; 06 · Inspection Report</div>
+  <div style="font-size:18px;font-weight:700;color:#0a2240;line-height:1.3;margin-bottom:16px;letter-spacing:-0.2px;">Regulatory review,<br><span style="color:#FF9933;">reimagined for India.</span></div>
+  <div style="font-size:9px;font-weight:700;color:#64748b;letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;">6 AI modules &middot; Stage 1 build</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:16px;">
+    <div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:12px 13px;">
+      <div style="font-size:8px;font-weight:700;color:#0369a1;letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px;">01 &middot; Privacy</div>
+      <div style="font-size:12px;font-weight:700;color:#1e293b;margin-bottom:2px;">Anonymisation</div>
+      <div style="font-size:10px;color:#94a3b8;line-height:1.4;">DPDP Act 2023 compliant PII removal</div>
+    </div>
+    <div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:12px 13px;">
+      <div style="font-size:8px;font-weight:700;color:#0f766e;letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px;">02 &middot; Intelligence</div>
+      <div style="font-size:12px;font-weight:700;color:#1e293b;margin-bottom:2px;">Summarisation</div>
+      <div style="font-size:10px;color:#94a3b8;line-height:1.4;">SAE reports, checklists, meeting audio</div>
+    </div>
+    <div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:12px 13px;">
+      <div style="font-size:8px;font-weight:700;color:#6d28d9;letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px;">03 &middot; Validation</div>
+      <div style="font-size:12px;font-weight:700;color:#1e293b;margin-bottom:2px;">Completeness</div>
+      <div style="font-size:10px;color:#94a3b8;line-height:1.4;">Mandatory field verification, flagging</div>
+    </div>
+    <div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:12px 13px;">
+      <div style="font-size:8px;font-weight:700;color:#b45309;letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px;">04 &middot; Triage</div>
+      <div style="font-size:12px;font-weight:700;color:#1e293b;margin-bottom:2px;">Classification</div>
+      <div style="font-size:10px;color:#94a3b8;line-height:1.4;">SAE severity scoring + duplicate detection</div>
+    </div>
+    <div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:12px 13px;">
+      <div style="font-size:8px;font-weight:700;color:#0369a1;letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px;">05 &middot; Diff engine</div>
+      <div style="font-size:12px;font-weight:700;color:#1e293b;margin-bottom:2px;">Comparison</div>
+      <div style="font-size:10px;color:#94a3b8;line-height:1.4;">Semantic + structural dossier diff</div>
+    </div>
+    <div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:12px 13px;">
+      <div style="font-size:8px;font-weight:700;color:#be185d;letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px;">06 &middot; Generation</div>
+      <div style="font-size:12px;font-weight:700;color:#1e293b;margin-bottom:2px;">Inspection Report</div>
+      <div style="font-size:10px;color:#94a3b8;line-height:1.4;">Typed / handwritten / audio &rarr; GCP report</div>
+    </div>
   </div>
-  <div style="display:flex;align-items:center;gap:0;margin-bottom:20px;">
-    <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
-      <div style="width:44px;height:44px;border-radius:10px;background:#e0f2fe;border:1.5px solid #bae6fd;display:flex;align-items:center;justify-content:center;margin-bottom:6px;">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="4" y="2" width="12" height="16" rx="2" fill="#0369a1" opacity=".15"/><rect x="4" y="2" width="12" height="16" rx="2" stroke="#0369a1" stroke-width="1.5"/><line x1="7" y1="7" x2="13" y2="7" stroke="#0369a1" stroke-width="1.2" stroke-linecap="round"/></svg>
-      </div>
-      <div style="font-size:9px;font-weight:600;color:#0a2240;text-align:center;">Upload<br>document</div>
-    </div>
-    <div style="color:#94a3b8;font-size:14px;padding:0 6px;margin-bottom:20px;">→</div>
-    <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
-      <div style="width:44px;height:44px;border-radius:10px;background:#0a2240;border:1.5px solid #0a2240;display:flex;align-items:center;justify-content:center;margin-bottom:6px;">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="#FF9933" stroke-width="1.5"/><circle cx="12" cy="12" r="3" fill="#FF9933"/></svg>
-      </div>
-      <div style="font-size:9px;font-weight:600;color:#0a2240;text-align:center;">Nirnay<br>processes</div>
-    </div>
-    <div style="color:#94a3b8;font-size:14px;padding:0 6px;margin-bottom:20px;">→</div>
-    <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
-      <div style="width:44px;height:44px;border-radius:10px;background:#dcfce7;border:1.5px solid #bbf7d0;display:flex;align-items:center;justify-content:center;margin-bottom:6px;">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#166534" stroke-width="1.5"/><path d="M8 12l3 3 5-5" stroke="#166534" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <div style="font-size:9px;font-weight:600;color:#0a2240;text-align:center;">Decision<br>ready</div>
-    </div>
-  </div>
-  <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:auto;padding-top:20px;">
+  <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:auto;padding-top:16px;">
     <div style="font-size:9px;font-weight:600;color:#0a2240;display:flex;align-items:center;gap:4px;"><div style="width:5px;height:5px;border-radius:50%;background:#22c55e;"></div>DPDP Act 2023</div>
     <div style="font-size:9px;font-weight:600;color:#0a2240;display:flex;align-items:center;gap:4px;"><div style="width:5px;height:5px;border-radius:50%;background:#22c55e;"></div>NDCT 2019</div>
     <div style="font-size:9px;font-weight:600;color:#0a2240;display:flex;align-items:center;gap:4px;"><div style="width:5px;height:5px;border-radius:50%;background:#22c55e;"></div>ICMR Guidelines</div>
@@ -421,7 +427,6 @@ if not st.session_state["logged_in"]:
 </div>
 """, unsafe_allow_html=True)
 
-        # Native Streamlit inputs — light panel, black text renders natively
         _uname = st.text_input("Username", placeholder="Enter username", key="login_uname")
         _pwd   = st.text_input("Password", placeholder="Enter password", type="password", key="login_pwd")
 

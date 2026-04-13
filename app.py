@@ -25,7 +25,7 @@ except ImportError:
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Nirnay — CDSCO AI Review System",
-    page_icon="⚕️",
+    page_icon="⚖️",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -153,7 +153,7 @@ for k in ["anon_text","sum_text","comp_text","class_text","v1_text","v2_text",
 
 # ── File extraction utility ───────────────────────────────────────────────────
 def extract_text(uploaded_file):
-    """Returns (text, error). Extracts paragraphs AND table cells from DOCX."""
+    """Returns (text, error). Uses session_state to survive reruns."""
     if uploaded_file is None:
         return "", None
     name = uploaded_file.name.lower()
@@ -163,14 +163,7 @@ def extract_text(uploaded_file):
             if not DOCX_OK:
                 return "", "Add 'python-docx' to requirements.txt"
             doc = python_docx.Document(io.BytesIO(raw))
-            parts = [p.text for p in doc.paragraphs if p.text.strip()]
-            # Also extract table cell text (fixes Word diff missing changes)
-            for table in doc.tables:
-                for row in table.rows:
-                    for cell in row.cells:
-                        if cell.text.strip():
-                            parts.append(cell.text.strip())
-            return "\n".join(parts), None
+            return "\n".join(p.text for p in doc.paragraphs if p.text.strip()), None
         elif name.endswith(".pdf"):
             if not PDF_OK:
                 return "", "Add 'pypdf' to requirements.txt"
@@ -208,9 +201,7 @@ CHIP_MAP = {
 
 def run_anonymisation(text):
     tokens, audit, processed = [], [], text
-    cnt = {k:0 for k in ["PATIENT","INVESTIGATOR","SUB_INVESTIGATOR","SPONSOR_CONTACT",
-                          "DATE","SITE","STUDY_ID","PHONE","AADHAAR","HOSP_REC",
-                          "EMAIL","PINCODE","INSTITUTION","REGULATORY_REF","BATCH_LOT"]}
+    cnt = {k:0 for k in ["PATIENT","INVESTIGATOR","DATE","SITE","ID","PHONE","AADHAAR","HOSP_REC"]}
     ts  = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     found_types = set()
 
@@ -221,128 +212,84 @@ def run_anonymisation(text):
         audit.append({"Timestamp":ts,"Action":"Pseudonymised","Entity Type":etype,"Token":t,"Reversible":"Yes"})
         found_types.add(etype)
 
-    # Email
+    # FIX ORDER: run phone & IDs BEFORE dates to avoid digit consumption
+    # Email addresses
     for m in re.finditer(r'[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}', processed):
-        t=tok("EMAIL"); rec(t,m.group(),"Email Address")
+        t=tok("ID"); rec(t,m.group(),"Email Address")
         processed=processed.replace(m.group(),t,1)
-    # Hospital record
+    # Hospital record #XXXXX
     for m in re.finditer(r'#\d{4,6}', processed):
         t=tok("HOSP_REC"); rec(t,m.group(),"Hospital Record No.")
         processed=processed.replace(m.group(),t,1)
-    # Aadhaar
-    for m in re.finditer(r'\d{4}[-\s]\d{4}[-\s]\d{4}', processed):
+    # Aadhaar XXXX-XXXX-XXXX
+    for m in re.finditer(r'\d{4}[-\s]\d{4}[-\s]\d{4}', processed):
         t=tok("AADHAAR"); rec(t,m.group(),"Aadhaar Number")
         processed=processed.replace(m.group(),t,1)
-    # Phone +91
+    # Phone — run BEFORE dates so digits not consumed
+    # +91 22 5550 1234 format
     for m in re.finditer(r'\+91[\s-]?\d{2,4}[\s-]\d{4}[\s-]\d{4}', processed):
         t=tok("PHONE"); rec(t,m.group(),"Phone Number")
         processed=processed.replace(m.group(),t,1)
     # 10-digit mobile
-    for m in re.finditer(r'[6-9]\d{9}', processed):
+    for m in re.finditer(r'[6-9]\d{9}', processed):
         t=tok("PHONE"); rec(t,m.group(),"Phone Number")
         processed=processed.replace(m.group(),t,1)
-    # Batch/Lot numbers (Sheet 2)
-    for m in re.finditer(r'(?:Batch|Lot)\s*(?:No\.?|Number|#)?\s*[:\-]?\s*([A-Z0-9][A-Z0-9\-\/]{3,})', processed, re.I):
-        t=tok("BATCH_LOT"); rec(t,m.group(),"Batch/Lot Number")
-        processed=processed.replace(m.group(),t,1)
-    # PvPI / regulatory reference numbers (Sheet 2)
-    for m in re.finditer(r'PvPI[-\/]\w{3,}[-\/]\w{2,}', processed, re.I):
-        t=tok("REGULATORY_REF"); rec(t,m.group(),"PvPI Reference")
-        processed=processed.replace(m.group(),t,1)
-    for m in re.finditer(r'(?:IEC|EC|ERB|IND|NDA|CTRI)[\/\-]\w{2,}[\/\-]\w{2,}', processed, re.I):
-        t=tok("REGULATORY_REF"); rec(t,m.group(),"Regulatory Reference")
-        processed=processed.replace(m.group(),t,1)
-    # Coded IDs
-    for m in re.finditer(r'(?:PT|SITE|IND|CT|SUBJ|INV|LH|MH|DL|CH)[-]\w{2,8}[-]\w{2,8}', processed):
+    # FIX 1: non-capturing group so finditer returns full match not just prefix
+    # LH-MUM-042, PT-2024-001, SITE-DEL-001
+    for m in re.finditer(r'(?:PT|SITE|IND|CT|SUBJ|INV|LH|MH|DL|CH)[-]\w{2,8}[-]\w{2,8}', processed):
         o=m.group()
         if any(o.startswith(p) for p in ["PT","SUBJ","LH","MH","DL"]): t=tok("PATIENT"); et="Patient ID"
         elif o.startswith("SITE"): t=tok("SITE"); et="Site Number"
         elif o.startswith("INV"):  t=tok("INVESTIGATOR"); et="Investigator ID"
-        else: t=tok("STUDY_ID"); et="Study ID"
+        else: t=tok("ID"); et="Regulatory ID"
         rec(t,o,et); processed=processed.replace(o,t,1)
-    # Dates (all patterns including month+year)
+    # Dates — run AFTER phone/IDs (fixes digit consumption order)
     for pat in [
-        re.compile(r'\d{1,2}[-/]\w{2,9}[-/]\d{2,4}'),
-        re.compile(r'\d{1,2}[-/]\d{1,2}[-/]\d{2,4}'),
-        re.compile(r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},?\s+\d{4}',re.I),
-        re.compile(r'\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}',re.I),
-        re.compile(r'\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}\b',re.I),
+        re.compile(r'\d{1,2}[-/]\w{2,9}[-/]\d{2,4}'),
+        re.compile(r'\d{1,2}[-/]\d{1,2}[-/]\d{2,4}'),
+        re.compile(r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},?\s+\d{4}',re.I),
+        re.compile(r'\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}',re.I),
     ]:
         for m in pat.finditer(processed):
             t=tok("DATE"); rec(t,m.group(),"Date / DOB")
             processed=processed.replace(m.group(),t,1)
-    # Standalone 4-digit years (Sheet 2: diagnosis years, smoking quit year)
-    for m in re.finditer(r'\b(19|20)\d{2}\b', processed):
-        t=tok("DATE"); rec(t,m.group(),"Year Reference")
-        processed=processed.replace(m.group(),t,1)
-    # Patient initials
+    # FIX 2: lookaround instead of  for initials —  fails next to periods
     for m in re.finditer(r'(?<!\w)[A-Z]\.[A-Z]\.(?!\w)', processed):
         t=tok("PATIENT"); rec(t,m.group(),"Patient Initials")
         processed=processed.replace(m.group(),t,1)
-    # Sub-investigator (Sheet 2)
-    sub_inv_re=re.compile(r'(?:Sub[\-\s]?Investigator|Co[\-\s]?Investigator)[\s\-:]?(?:Dr\.?\s+)?('+ '|'.join(INDIAN_FIRST)+r')\s+('+ '|'.join(INDIAN_LAST)+r')',re.I)
-    for m in sub_inv_re.finditer(processed):
-        t=tok("SUB_INVESTIGATOR"); rec(t,m.group(),"Sub-Investigator Name")
-        processed=processed.replace(m.group(),t,1)
-    # Sponsor Medical Monitor (Sheet 2)
-    mon_re=re.compile(r'(?:Medical\s+Monitor|Sponsor\s+Contact)[\s\-:]?(?:Dr\.?\s+)?('+ '|'.join(INDIAN_FIRST)+r')\s+('+ '|'.join(INDIAN_LAST)+r')',re.I)
-    for m in mon_re.finditer(processed):
-        t=tok("SPONSOR_CONTACT"); rec(t,m.group(),"Sponsor Medical Monitor")
-        processed=processed.replace(m.group(),t,1)
     # Dr. + Indian name
-    name_re=re.compile(r'(Dr\.?\s+)('+ '|'.join(INDIAN_FIRST)+r')\s+('+ '|'.join(INDIAN_LAST)+r')')
+    name_re=re.compile(r'(Dr\.?\s+)('+'|'.join(INDIAN_FIRST)+r')\s+('+'|'.join(INDIAN_LAST)+r')')
     for m in name_re.finditer(processed):
         t=tok("INVESTIGATOR"); rec(t,m.group(),"Investigator Name")
         processed=processed.replace(m.group(),t,1)
     # Non-Dr Indian name
-    name_re2=re.compile(r'('+ '|'.join(INDIAN_FIRST)+r')\s+('+ '|'.join(INDIAN_LAST)+r')')
+    name_re2=re.compile(r'('+'|'.join(INDIAN_FIRST)+r')\s+('+'|'.join(INDIAN_LAST)+r')')
     for m in name_re2.finditer(processed):
         if m.group() in processed:
             t=tok("PATIENT"); rec(t,m.group(),"Patient Name")
             processed=processed.replace(m.group(),t,1)
-    # Institution names (Sheet 2)
-    inst_re=re.compile(r'\b(?:AIIMS|NIMHANS|PGI|JIPMER|KEM|Narayana|Apollo|Fortis|Medanta|'
-                       r'Max\s+Hospital|Tata\s+Memorial|SGPGI|MAMC|RML|Safdarjung|CMC\s+Vellore)\b',re.I)
-    for m in inst_re.finditer(processed):
-        t=tok("INSTITUTION"); rec(t,m.group(),"Institution Name")
+    # Study IDs: IND-CT-XXXX-XXXX format
+    for m in re.finditer(r'\bIND-[A-Z]{{2,4}}-\d{{4}}-\d{{3,6}}\b', processed):
+        t=tok("ID"); rec(t,m.group(),"Study ID")
         processed=processed.replace(m.group(),t,1)
-    # Pincode
-    for m in re.finditer(r'[1-9]\d{5}', processed):
-        t=tok("PINCODE"); rec(t,m.group(),"Pincode")
+    # Pincode — run last to avoid consuming phone/ID digits
+    for m in re.finditer(r'[1-9]\d{5}', processed):
+        t=tok("ID"); rec(t,m.group(),"Pincode")
         processed=processed.replace(m.group(),t,1)
-
-    step1=processed
 
     # Step 2: irreversible generalisation
-    step2=step1
-    # Ages
-    step2=re.compile(r'\b(\d{1,3})\s*(?:years?|yrs?)(?:\s*old)?\b',re.I).sub(
+    step2=processed
+    step2=re.compile(r'\b(\d{2})\s*(?:years?|yrs?)(?:\s*old)?\b',re.I).sub(
         lambda m:f"{(int(m.group(1))//5)*5}-{(int(m.group(1))//5)*5+4} years",step2)
-    # Weight (Sheet 2)
-    step2=re.compile(r'\b(\d{2,3}(?:\.\d)?)\s*kg\b',re.I).sub(
-        lambda m:f"{(int(float(m.group(1)))//10)*10}-{(int(float(m.group(1)))//10)*10+9} kg",step2)
-    # Height (Sheet 2)
-    step2=re.compile(r'\b(1[5-9]\d(?:\.\d)?)\s*cm\b',re.I).sub(
-        lambda m:f"{(int(float(m.group(1)))//5)*5}-{(int(float(m.group(1)))//5)*5+4} cm",step2)
-    # BMI (Sheet 2)
-    step2=re.compile(r'\bBMI\s*[:\-]?\s*(\d{2}(?:\.\d{1,2})?)\b',re.I).sub(
-        lambda m:f"BMI {int(float(m.group(1)))}-{int(float(m.group(1)))+2}",step2)
-    # Blood group (Sheet 2)
-    step2=re.compile(r'\b(A|B|AB|O)[+-]\b').sub('[BLOOD_GROUP]',step2)
-    step2=re.compile(r'\bblood\s+group\s*[:\-]?\s*(A|B|AB|O)[+-]?\b',re.I).sub('[BLOOD_GROUP]',step2)
-    # Lab values (Sheet 2)
-    step2=re.compile(r'\b(\d{1,3}(?:\.\d{1,2})?)\s*(mg/dL|g/dL|mmol/L|IU/L|U/L|µmol/L|ng/mL|pg/mL)\b',re.I).sub(
-        lambda m:f"[LAB_VALUE {m.group(2)}]",step2)
-    # Clinical timestamps (Sheet 2)
-    step2=re.compile(r'\b\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM|hrs?)?\b',re.I).sub('[TIME_REDACTED]',step2)
-    # DATE tokens → year only
+    step2=re.compile(r'\b(\d{2,3})\s*kg\b',re.I).sub(
+        lambda m:f"{(int(m.group(1))//10)*10}-{(int(m.group(1))//10)*10+9} kg",step2)
+    step2=re.compile(r'\b(1[5-9]\d)\s*cm\b',re.I).sub(
+        lambda m:f"{(int(m.group(1))//5)*5}-{(int(m.group(1))//5)*5+4} cm",step2)
     step2=re.compile(r'\[DATE-\d+\]').sub('[YEAR-ONLY]',step2)
-    for et in ["Dates→Year only","Ages→5yr range","Weight/Height→Range",
-               "BMI→Range","Lab values→Range","Blood group→Suppressed","Timestamps→Redacted"]:
-        audit.append({"Timestamp":ts,"Action":"Irreversible Generalisation",
-                      "Entity Type":et,"Token":"Generalised","Reversible":"No"})
+    for et in ["Dates→Year only","Ages→Range","Biometrics→Range"]:
+        audit.append({"Timestamp":ts,"Action":"Irreversible Generalisation","Entity Type":et,"Token":"Generalised","Reversible":"No"})
 
-    return {"step1":step1,"step2":step2,"tokens":tokens,"audit":audit,
+    return {"step1":processed,"step2":step2,"tokens":tokens,"audit":audit,
             "types":list(found_types),"count":len(tokens)}
 
 
@@ -358,13 +305,13 @@ FEATURES = [
     ("01", "Anonymisation",    "Protect sensitive information",
      "Removes patient names, IDs, phone numbers, and dates — full DPDP Act 2023 audit log."),
     ("02", "Summarisation",    "Get a quick document summary",
-     "Extracts decisions and findings from SAE reports, checklists, meeting transcripts/audio."),
+     "Extracts key decisions, actions, and findings from SAE reports and checklists."),
     ("03", "Completeness",     "Check if an application is complete",
-     "Verifies all 20 mandatory fields. Recommends approve, return, or reject."),
+     "Verifies all 20 mandatory Schedule Y fields. Recommends approve, return, or reject."),
     ("04", "Classification",   "Classify how serious an adverse event is",
-     "SAE severity: death, disability, hospitalisation, etc. Duplicate detection."),
+     "Identifies death, disability, or hospitalisation and flags duplicate SAE reports."),
     ("05", "Comparison",       "See what changed between two document versions",
-     "Semantic + structural diff across document versions."),
+     "Highlights every change and marks which ones matter for regulatory approval."),
     ("06", "Inspection Report","Turn inspection notes into a formal report",
      "Converts raw site observations into a CDSCO GCP report with risk grading."),
 ]
@@ -400,7 +347,7 @@ if not st.session_state["logged_in"]:
     padding:10px 14px !important;
 }
 [data-testid="stTextInput"] input::placeholder { color:#94a3b8 !important; }
-[data-testid="stTextInput"] label { color:#1e293b !important; font-size:11px !important; font-weight:600 !important; text-transform:uppercase !important; letter-spacing:.06em !important; }
+[data-testid="stTextInput"] label { color:#475569 !important; font-size:11px !important; font-weight:600 !important; text-transform:uppercase !important; letter-spacing:.06em !important; }
 [data-testid="stTextInput"] input:focus { border-color:#003087 !important; box-shadow:0 0 0 2px rgba(0,48,135,0.08) !important; }
 .login-signin-btn > button {
     width:100% !important;
@@ -424,6 +371,8 @@ if not st.session_state["logged_in"]:
 <div style="background:#f0f3f8;border-radius:16px 0 0 16px;padding:40px 44px;min-height:560px;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,0.14);">
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
     <div style="font-size:36px;font-weight:900;color:#0a2240;letter-spacing:-1px;line-height:1;">Nirnay</div>
+    <div style="width:1px;height:26px;background:rgba(10,34,64,0.2);"></div>
+    <div style="font-size:9px;font-weight:700;color:#0077b6;letter-spacing:.1em;text-transform:uppercase;line-height:1.5;">CDSCO<br>Review System</div>
   </div>
   <div style="font-size:18px;font-weight:700;color:#0a2240;line-height:1.3;margin-bottom:24px;letter-spacing:-0.2px;">Regulatory review,<br><span style="color:#FF9933;">reimagined for India.</span></div>
   <div style="font-size:9px;font-weight:700;color:#0a2240;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;">What Nirnay can do for you</div>
@@ -464,10 +413,10 @@ if not st.session_state["logged_in"]:
 
     with _right_col:
         st.markdown("""
-<div style="background:#f0f3f8;border-radius:0 16px 16px 0;padding:36px 32px;min-height:560px;position:relative;overflow:hidden;">
-<div style="font-size:10px;font-weight:700;color:#475569;letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;">Authorised access only</div>
-<div style="background:white;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin-bottom:20px;">
-  <div style="font-size:20px;font-weight:800;color:#0a2240;margin-bottom:0;">Sign in</div>
+<div style="background:#f0f3f8;border-radius:0 16px 16px 0;padding:36px 32px;min-height:560px;">
+<div style="font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;">Authorised access only</div>
+<div style="background:white;border:1px solid #e2e8f0;border-radius:12px;padding:16px 18px;margin-bottom:20px;">
+  <div style="font-size:20px;font-weight:800;color:#0a2240;">Sign in</div>
 </div>
 </div>
 """, unsafe_allow_html=True)
@@ -488,7 +437,7 @@ if not st.session_state["logged_in"]:
 
         st.markdown('<div style="font-size:10px;color:#94a3b8;text-align:center;margin-top:2px;">Forgot credentials? Contact your administrator</div>', unsafe_allow_html=True)
         st.markdown("""
-<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;margin-top:14px;">
+<div style="background:white;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;margin-top:14px;">
   <p style="font-size:10px;color:#64748b;line-height:1.6;margin:0;text-align:center;">Authorised CDSCO personnel only.<br>All sessions are logged for compliance purposes.</p>
 </div>
 """, unsafe_allow_html=True)
@@ -506,11 +455,13 @@ if not st.session_state["logged_in"]:
 
 # ═══ LOGGED IN — show post-login home then full app ════════════════════════════
 # ── TOP BAR ──────────────────────────────────────────────────────────────────
-tb1, tb2 = st.columns([5,1])
+tb1, tb2 = st.columns([3,1])
 with tb1:
     st.markdown("""
 <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
   <div style="font-size:26px;font-weight:900;color:#0a2240;letter-spacing:-0.8px;">Nirnay</div>
+  <div style="width:1px;height:20px;background:rgba(10,34,64,0.2);"></div>
+  <div style="font-size:9px;font-weight:700;color:#0077b6;letter-spacing:.1em;text-transform:uppercase;line-height:1.5;">CDSCO<br>AI Review System</div>
   <div style="width:1px;height:20px;background:rgba(10,34,64,0.1);margin:0 4px;"></div>
   <div style="font-size:12px;color:#475569;font-weight:500;">Regulatory review, <span style='color:#FF9933;'>reimagined for India.</span></div>
 </div>
@@ -592,13 +543,13 @@ with t0:
   <div>
     <div style="width:38px;height:38px;border-radius:10px;background:{ICON_COLORS[_i]};display:flex;align-items:center;justify-content:center;margin-bottom:10px;">{ICONS[_i]}</div>
     <div style="font-size:16px;font-weight:800;color:#FF9933;letter-spacing:-0.2px;line-height:1.1;margin-bottom:5px;">{_fnum} &middot; {_fname}</div>
-    <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.85);line-height:1.4;margin-bottom:7px;">{_ftitle}</div>
-    <div style="font-size:12px;color:rgba(255,255,255,0.5);line-height:1.5;">{_fdesc}</div>
+    <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.85);line-height:1.4;margin-bottom:7px;">{_ftitle}</div>
+    <div style="font-size:10px;color:rgba(255,255,255,0.45);line-height:1.5;">{_fdesc}</div>
   </div>
-  <div onclick="" style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,153,51,0.1);border:1px solid rgba(255,153,51,0.28);border-radius:6px;padding:5px 12px;font-size:11px;font-weight:700;color:#FF9933;letter-spacing:.04em;margin-top:14px;align-self:flex-start;cursor:pointer;">Start &#8594;</div>
+  <div style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,153,51,0.1);border:1px solid rgba(255,153,51,0.28);border-radius:6px;padding:5px 12px;font-size:10px;font-weight:700;color:#FF9933;letter-spacing:.04em;margin-top:14px;align-self:flex-start;">Start &#8594;</div>
 </div>
 """, unsafe_allow_html=True)
-            if st.button(f"Start — {_tab_names[_i]}", key=f"home_card_{_i}", use_container_width=True):
+            if st.button(f"  {_tab_names[_i]}  ", key=f"home_card_{_i}", use_container_width=True):
                 st.session_state["active_tab"] = _i + 1
                 st.rerun()
 
@@ -709,14 +660,15 @@ with t1:
             # ── LEFT COLUMN — Step 1 ─────────────────────────────────────────
             with col_s1:
                 st.markdown("""
-                <div style="background:white;border-radius:12px;padding:16px 18px;border:1.5px solid #e2e8f0;margin-bottom:4px;">
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
                   <span style="background:#003087;color:white;border-radius:20px;padding:3px 12px;font-size:11px;font-weight:600;">Step 1 — Reversible pseudonymisation</span>
+                  <span style="font-size:11px;color:#64748b;">Identifiers replaced with codes · Can be reversed by authorised personnel</span>
                 </div>
-                <p style="font-size:11px;color:#64748b;margin:0 0 10px;">Identifiers replaced with codes · Can be reversed by authorised personnel</p>
                 """, unsafe_allow_html=True)
-                st.text_area("", result["step1"], height=240, key="s1o", label_visibility="collapsed")
-                st.markdown("<div style='margin:8px 0 4px;font-size:12px;font-weight:600;color:#1e293b;'>Download</div>", unsafe_allow_html=True)
+                st.text_area("", result["step1"], height=280, key="s1o", label_visibility="collapsed")
+
+                # Step 1 downloads — selectbox approach (reliable in Streamlit)
+                st.markdown("<div style='margin:8px 0 4px;font-size:12px;font-weight:600;color:#1e293b;'>Download deidentified report</div>", unsafe_allow_html=True)
                 s1_fmt = st.selectbox("", ["Select format ▾", "Token Registry (JSON)", "Pseudonymised Document (TXT)", "Deidentified Report (TXT)"],
                     key="s1_dl_fmt", label_visibility="collapsed")
 
@@ -760,23 +712,24 @@ with t1:
                     st.download_button("⬇ Download Deidentified Report (TXT)", _dei_txt,
                         file_name=f"{_base}_Deidentified_Report.txt", mime="text/plain", use_container_width=True)
 
+                # Token mapping table
                 with st.expander("Token mapping table — reversible at this stage", expanded=False):
                     st.markdown('<div class="tw">', unsafe_allow_html=True)
                     st.dataframe(_tokens_df, use_container_width=True, hide_index=True)
                     st.markdown('</div>', unsafe_allow_html=True)
-                st.markdown("</div>", unsafe_allow_html=True)
 
             # ── RIGHT COLUMN — Step 2 ────────────────────────────────────────
             with col_s2:
                 st.markdown("""
-                <div style="background:white;border-radius:12px;padding:16px 18px;border:1.5px solid #e2e8f0;margin-bottom:4px;">
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
                   <span style="background:#0f766e;color:white;border-radius:20px;padding:3px 12px;font-size:11px;font-weight:600;">Step 2 — Irreversible generalisation</span>
+                  <span style="font-size:11px;color:#64748b;">All identifiers permanently removed · Safe to share externally</span>
                 </div>
-                <p style="font-size:11px;color:#64748b;margin:0 0 10px;">All identifiers permanently removed · Safe to share externally</p>
                 """, unsafe_allow_html=True)
-                st.text_area("", result["step2"], height=240, key="s2o", label_visibility="collapsed")
-                st.markdown("<div style='margin:8px 0 4px;font-size:12px;font-weight:600;color:#1e293b;'>Download</div>", unsafe_allow_html=True)
+                st.text_area("", result["step2"], height=280, key="s2o", label_visibility="collapsed")
+
+                # Step 2 downloads
+                st.markdown("<div style='margin:8px 0 4px;font-size:12px;font-weight:600;color:#1e293b;'>Download anonymised report</div>", unsafe_allow_html=True)
                 s2_fmt = st.selectbox("", ["Select format ▾", "Anonymised Report (TXT)", "Generalised Data (JSON)", "Audit Trail (JSON)"],
                     key="s2_dl_fmt", label_visibility="collapsed")
 
@@ -834,11 +787,11 @@ with t1:
                     st.download_button("⬇ Download Audit Trail (JSON)", _audit_json,
                         file_name=f"{_base}_AuditTrail.json", mime="application/json", use_container_width=True)
 
+                # Audit log
                 with st.expander("Technical audit log (DPDP Act 2023 compliance record)", expanded=False):
                     st.markdown('<div class="tw">', unsafe_allow_html=True)
                     st.dataframe(_audit_df, use_container_width=True, hide_index=True)
                     st.markdown('</div>', unsafe_allow_html=True)
-                st.markdown("</div>", unsafe_allow_html=True)
 
             # ── jsPDF component — PDF generation client-side ──────────────────
             import streamlit.components.v1 as _components
@@ -1028,43 +981,18 @@ with t2:
                 st.download_button("⬇ Download SAE Summary", f"Priority:{priority}\nCausality:{causality}\nOutcome:{outcome}\nTimeline:{timeline}", file_name="sae_summary.txt")
 
             elif doc_type == "Application Checklist (SUGAM)":
-                tl2 = content.lower()
-                # Check against mandatory fields
-                MANDATORY = [
-                    ("Protocol Synopsis","protocol synopsis"),
-                    ("Investigator Brochure","investigator brochure"),
-                    ("Form CT-04","ct-04"),("Form CT-05","ct-05"),
-                    ("Ethics Committee Approval","ethics committee"),
-                    ("Informed Consent","informed consent"),
-                    ("Investigator CV","investigator cv"),
-                    ("Site Master File","site master"),
-                    ("Insurance Certificate","insurance"),
-                    ("GCP Certificate","gcp"),
-                    ("Patient Information Sheet","patient information"),
-                    ("Case Report Form","case report form"),
-                    ("Statistical Analysis Plan","statistical analysis"),
-                    ("Pharmacovigilance Plan","pharmacovigilance"),
-                    ("Regulatory Approval","regulatory approval"),
-                    ("Sponsor Authorisation","sponsor authorisation"),
-                ]
-                found_fields=[f for f,kw in MANDATORY if kw in tl2]
-                missing_fields=[f for f,kw in MANDATORY if kw not in tl2]
-                tot=len(MANDATORY); comp=len(found_fields); miss=len(missing_fields); inc=0
-                sc=round((comp/tot)*100) if tot else 0
-                rec="✅ Approve for Technical Review" if sc>=85 else "⚠️ Return for Completion" if sc>=60 else "❌ Reject"
+                lines=[l.strip() for l in content.split('\n') if l.strip()]
+                comp=sum(1 for l in lines if any(w in l.lower() for w in ["complete","present","yes","submitted","available"]))
+                miss=sum(1 for l in lines if any(w in l.lower() for w in ["missing","absent","no","not submitted"]))
+                inc=sum(1 for l in lines if any(w in l.lower() for w in ["incomplete","pending","partial"]))
+                tot=len(lines); sc=round((comp/tot)*100) if tot else 0
+                rec="✅ Approve" if sc>=80 else "⚠️ Return for Completion" if sc>=50 else "❌ Reject"
                 c1,c2,c3,c4=st.columns(4)
-                c1.metric("Fields Checked",tot);c2.metric("Present",comp);c3.metric("Missing",miss);c4.metric("Score",f"{sc}%")
-                st.progress(sc/100,text=f"Completeness: {sc}%")
-                cc="ok" if sc>=85 else "warn" if sc>=60 else "err"
-                ai_recommendation_card(f"Application completeness: {sc}%",
-                    "Low" if sc>=85 else "Medium" if sc>=60 else "Critical",
-                    rec, f"Fields present: {', '.join(found_fields[:5])}{'...' if len(found_fields)>5 else ''}")
+                c1.metric("Total",tot);c2.metric("Complete",comp);c3.metric("Incomplete",inc);c4.metric("Missing",miss)
+                st.progress(sc/100,text=f"Score: {sc}%")
+                cc="ok" if sc>=80 else "warn" if sc>=50 else "err"
                 st.markdown(f'<div class="rc {cc}"><b>Recommendation:</b> {rec}</div>',unsafe_allow_html=True)
-                if missing_fields:
-                    st.warning(f"Missing fields: {', '.join(missing_fields)}")
-                st.download_button("⬇ Download Summary",
-                    f"Score:{sc}%\n{rec}\nPresent:{', '.join(found_fields)}\nMissing:{', '.join(missing_fields)}",
-                    file_name="checklist_summary.txt")
+                st.download_button("⬇ Download",f"Score:{sc}%\n{rec}",file_name="checklist_summary.txt")
 
             else:
                 if audio_mode and not content.replace(f"[AUDIO: {sum_file.name if sum_file else ''}]","").replace("Paste transcript below if available.","").strip():
@@ -1122,7 +1050,7 @@ with t3:
     st.markdown("""
     <div class="sec-hd">
       <div class="sec-ic ic-purple">✅</div>
-      <div><h2>Completeness Assessment</h2>
+      <div><h2>Completeness Assessment — Schedule Y</h2>
       <p>Upload application document · 20 mandatory fields · RAG status · Approve / Return / Reject recommendation</p></div>
     </div>
     """, unsafe_allow_html=True)
@@ -1187,21 +1115,21 @@ with t3:
             cc="ok" if sc>=85 and not cm else "warn" if sc>=60 else "err"
             c1,c2,c3,c4=st.columns(4)
             c1.metric("Total",20);c2.metric("Present",pre);c3.metric("Incomplete",inc);c4.metric("Missing",mis)
-            st.progress(sc/100,text=f"Completeness: {sc}%")
+            st.progress(sc/100,text=f"Schedule Y Completeness: {sc}%")
             _comp_risk = "Critical" if cm else "High" if sc < 60 else "Medium" if sc < 85 else "Low"
             _comp_action = (f"Reject — {len(cm)} critical Schedule Y field(s) missing: {', '.join(cm[:3])}{'...' if len(cm)>3 else ''}. Application cannot proceed." if cm
                            else f"Return for completion — {missing} field(s) need attention before technical review."
                            if sc < 85 else "Approve for technical review — all critical fields present.")
             ai_recommendation_card(
-                f"Completeness: {sc}% · {rec}",
+                f"Schedule Y completeness: {sc}% · {rec}",
                 _comp_risk,
                 _comp_action,
-                f"Fields checked: 20 mandatory fields · Present: {pre} · Missing: {missing} · Incomplete: {inc}"
+                f"Fields checked: 20 mandatory Schedule Y fields · Present: {pre} · Missing: {missing} · Incomplete: {inc}"
             )
             st.markdown(f'<div class="rc {cc}"><b>Recommendation:</b> {rec}</div>',unsafe_allow_html=True)
             if cm: st.error(f"Critical missing: {', '.join(cm)}")
             if mm: st.warning(f"Major missing: {', '.join(mm)}")
-            with st.expander("Full Field Status",expanded=True):
+            with st.expander("Full Schedule Y Field Status",expanded=True):
                 def srag(v):
                     if "Green" in str(v): return "background-color:#dcfce7;color:#15803d;font-weight:600"
                     if "Amber" in str(v): return "background-color:#fef9c3;color:#a16207;font-weight:600"
@@ -1325,15 +1253,10 @@ with t4:
                     if v["text"].strip()==content.strip(): continue
                     id2,dr2=get_ids(v["text"])
                     shared_ids=id1&id2; shared_drugs=dr1&dr2
-                    # Jaccard word-set similarity (avoids 100% false positives)
-                    words1=set(re.findall(r'\b\w{4,}\b',content.lower()))
-                    words2=set(re.findall(r'\b\w{4,}\b',v["text"].lower()))
-                    jaccard=len(words1&words2)/len(words1|words2) if (words1|words2) else 0
-                    if shared_ids or shared_drugs or jaccard>0.85:
+                    if shared_ids or shared_drugs:
                         detail=[]
                         if shared_ids: detail.append(f"Patient IDs: {shared_ids}")
                         if shared_drugs: detail.append(f"Drugs: {shared_drugs}")
-                        if jaccard>0.85: detail.append(f"Text similarity: {round(jaccard*100)}%")
                         st.markdown(f'<div class="rc err">⚠️ DUPLICATE DETECTED — matches <b>{v["name"]}</b> · {" · ".join(detail)}</div>',unsafe_allow_html=True)
                         dup_found=True
                 if not dup_found:

@@ -37,6 +37,7 @@ st.markdown("""
 html,body,[class*="css"]{font-family:'Inter',sans-serif;}
 #MainMenu,footer,header{visibility:hidden;}
 .stApp{background-color:#0077b6;}
+.stTabs [data-baseweb="tab-panel"]{background:white;border-radius:0 0 12px 12px;padding:16px !important;}
 
 section[data-testid="stSidebar"]{background:linear-gradient(180deg,#001f5b 0%,#003087 60%,#004db3 100%);}
 section[data-testid="stSidebar"] * {color:white!important;}
@@ -350,7 +351,7 @@ if not st.session_state["logged_in"]:
         # Wordmark
         st.markdown("""
 <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px;">
-  <div style="font-size:26px;font-weight:900;color:#0a2240;letter-spacing:-0.8px;">Nirnay</div>
+  <div style="font-size:36px;font-weight:900;color:#0a2240;letter-spacing:-1px;line-height:1;">Nirnay</div>
   <div style="width:1px;height:20px;background:rgba(10,34,64,0.2);"></div>
   <div style="font-size:9px;font-weight:700;color:#0077b6;letter-spacing:.1em;text-transform:uppercase;line-height:1.5;">CDSCO<br>AI Review System</div>
 </div>
@@ -358,7 +359,7 @@ if not st.session_state["logged_in"]:
 
         # Tagline
         st.markdown("""
-<div style="font-size:26px;font-weight:800;color:#0a2240;letter-spacing:-0.4px;line-height:1.2;margin-bottom:28px;">Regulatory review,<br><span style="color:#FF9933;">reimagined for India.</span></div>
+<div style="font-size:18px;font-weight:700;color:#0a2240;letter-spacing:-0.2px;line-height:1.3;margin-bottom:22px;">Regulatory review,<br><span style="color:#FF9933;">reimagined for India.</span></div>
 """, unsafe_allow_html=True)
 
         # Carousel label
@@ -370,7 +371,7 @@ if not st.session_state["logged_in"]:
         idx = st.session_state["carousel_idx"]
         num, feat, title, _ = FEATURES[idx]
         st.markdown(f"""
-<div style="font-size:18px;font-weight:900;color:#FF9933;margin-bottom:18px;letter-spacing:-0.2px;">{num} · {feat}</div>
+<div style="font-size:16px;font-weight:800;color:#0077b6;margin-bottom:10px;letter-spacing:-0.1px;">{num} · {feat}</div>
 <div style="font-size:13px;font-weight:600;color:#0a2240;margin-bottom:18px;line-height:1.3;">{title}</div>
 """, unsafe_allow_html=True)
 
@@ -486,85 +487,7 @@ with tb2:
         st.session_state["logged_in"] = False
         st.rerun()
 
-# ── HEADER ────────────────────────────────────────────────────────────────────
-# ── HERO BANNER ──────────────────────────────────────────────────────────────
-st.markdown("""
-<div style="background:#0a2240;border-radius:14px;overflow:hidden;margin-bottom:16px;">
-<div style="display:flex;gap:0;padding:26px 28px 20px;">
-<div style="flex:1.8;padding-right:24px;border-right:1px solid rgba(255,255,255,0.07);">
-<div style="font-size:9px;font-weight:700;color:rgba(255,153,51,0.8);letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px;">Central Drugs Standard Control Organisation &middot; India</div>
-<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-<div style="font-size:28px;font-weight:900;color:white;letter-spacing:-0.8px;line-height:1;">Nirnay</div>
-<div style="width:1px;height:24px;background:rgba(255,255,255,0.2);"></div>
-<div style="font-size:9px;font-weight:700;color:#FF9933;letter-spacing:.1em;text-transform:uppercase;line-height:1.5;">CDSCO<br>AI Review System</div>
-</div>
-<div style="font-size:19px;font-weight:800;color:white;letter-spacing:-0.3px;line-height:1.25;margin-bottom:10px;">Regulatory review,<br><span style="color:#FF9933;">reimagined for India.</span></div>
-<div style="font-size:11px;color:rgba(255,255,255,0.5);line-height:1.7;margin-bottom:14px;">From SUGAM submissions to SAE case resolution &mdash; Nirnay brings AI-powered precision to every stage of CDSCO&apos;s regulatory workflow under the New Drugs and Clinical Trials Rules, 2019. Nirnay handles the screening. Every decision gets the attention it deserves.</div>
-<div style="display:inline-flex;align-items:center;gap:5px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);border-radius:4px;padding:4px 10px;font-size:9px;color:#86efac;font-weight:600;">
-<div style="width:5px;height:5px;border-radius:50%;background:#22c55e;flex-shrink:0;"></div>All processing is local &middot; No data leaves this platform</div>
-</div>
-<div style="flex:1.6;padding:0 24px;border-right:1px solid rgba(255,255,255,0.07);">
-<div style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;">Supported document types</div>
-<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;margin-bottom:5px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);"><div style="width:6px;height:6px;border-radius:50%;background:#22c55e;flex-shrink:0;"></div><div style="font-size:11px;color:rgba(255,255,255,0.78);font-weight:500;flex:1;">SAE Case Narration</div><div style="font-size:8px;font-weight:700;color:#4ade80;letter-spacing:.06em;">ACTIVE</div></div>
-<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;margin-bottom:5px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);"><div style="width:6px;height:6px;border-radius:50%;background:#22c55e;flex-shrink:0;"></div><div style="font-size:11px;color:rgba(255,255,255,0.78);font-weight:500;flex:1;">SUGAM Application Checklist</div><div style="font-size:8px;font-weight:700;color:#4ade80;letter-spacing:.06em;">ACTIVE</div></div>
-<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;margin-bottom:5px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);"><div style="width:6px;height:6px;border-radius:50%;background:#22c55e;flex-shrink:0;"></div><div style="font-size:11px;color:rgba(255,255,255,0.78);font-weight:500;flex:1;">Clinical Trial Protocol</div><div style="font-size:8px;font-weight:700;color:#4ade80;letter-spacing:.06em;">ACTIVE</div></div>
-<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;margin-bottom:5px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);"><div style="width:6px;height:6px;border-radius:50%;background:#FF9933;flex-shrink:0;"></div><div style="font-size:11px;color:rgba(255,255,255,0.78);font-weight:500;flex:1;">Meeting Transcript / Audio</div><div style="font-size:8px;font-weight:700;color:#FF9933;letter-spacing:.06em;">STAGE 2</div></div>
-<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);"><div style="width:6px;height:6px;border-radius:50%;background:#22c55e;flex-shrink:0;"></div><div style="font-size:11px;color:rgba(255,255,255,0.78);font-weight:500;flex:1;">GCP Inspection Notes</div><div style="font-size:8px;font-weight:700;color:#4ade80;letter-spacing:.06em;">ACTIVE</div></div>
-</div>
-<div style="flex:1.6;padding-left:24px;">
-<div style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;">Platform capabilities</div>
-<div style="display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.06);"><div style="font-size:24px;font-weight:800;color:#FF9933;line-height:1;min-width:32px;">8</div><div><div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.85);line-height:1.2;">PII types detected</div><div style="font-size:9px;color:rgba(255,255,255,0.3);margin-top:2px;">Names &middot; IDs &middot; Dates &middot; Phone &middot; Aadhaar</div></div></div>
-<div style="display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.06);"><div style="font-size:24px;font-weight:800;color:#FF9933;line-height:1;min-width:32px;">20</div><div><div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.85);line-height:1.2;">Schedule Y fields</div><div style="font-size:9px;color:rgba(255,255,255,0.3);margin-top:2px;">All mandatory fields verified per submission</div></div></div>
-<div style="display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.06);"><div style="font-size:24px;font-weight:800;color:#FF9933;line-height:1;min-width:32px;">6</div><div><div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.85);line-height:1.2;">AI review features</div><div style="font-size:9px;color:rgba(255,255,255,0.3);margin-top:2px;">Anonymise &middot; Summarise &middot; Classify &middot; Compare</div></div></div>
-<div style="display:flex;align-items:center;gap:12px;padding:7px 0;"><div style="font-size:24px;font-weight:800;color:#FF9933;line-height:1;min-width:32px;">3</div><div><div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.85);line-height:1.2;">Compliance frameworks</div><div style="font-size:9px;color:rgba(255,255,255,0.3);margin-top:2px;">DPDP 2023 &middot; ICMR &middot; CDSCO Schedule Y</div></div></div>
-</div>
-</div>
-<div style="border-top:1px solid rgba(255,255,255,0.06);padding:9px 28px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-<span style="font-size:9px;font-weight:600;color:rgba(255,255,255,0.35);display:flex;align-items:center;gap:4px;"><span style="width:13px;height:13px;border-radius:50%;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);display:inline-flex;align-items:center;justify-content:center;font-size:7px;color:#4ade80;">&#10003;</span>DPDP Act 2023</span>
-<span style="color:rgba(255,255,255,0.1);font-size:14px;">&middot;</span>
-<span style="font-size:9px;font-weight:600;color:rgba(255,255,255,0.35);display:flex;align-items:center;gap:4px;"><span style="width:13px;height:13px;border-radius:50%;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);display:inline-flex;align-items:center;justify-content:center;font-size:7px;color:#4ade80;">&#10003;</span>ICMR Ethical Guidelines 2017</span>
-<span style="color:rgba(255,255,255,0.1);font-size:14px;">&middot;</span>
-<span style="font-size:9px;font-weight:600;color:rgba(255,255,255,0.35);display:flex;align-items:center;gap:4px;"><span style="width:13px;height:13px;border-radius:50%;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);display:inline-flex;align-items:center;justify-content:center;font-size:7px;color:#4ade80;">&#10003;</span>CDSCO Schedule Y</span>
-<span style="color:rgba(255,255,255,0.1);font-size:14px;">&middot;</span>
-<span style="font-size:9px;font-weight:600;color:rgba(255,255,255,0.35);display:flex;align-items:center;gap:4px;"><span style="width:13px;height:13px;border-radius:50%;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);display:inline-flex;align-items:center;justify-content:center;font-size:7px;color:#4ade80;">&#10003;</span>New Drugs &amp; Clinical Trials Rules 2019</span>
-<span style="color:rgba(255,255,255,0.1);font-size:14px;">&middot;</span>
-<span style="font-size:9px;font-weight:600;color:rgba(255,255,255,0.35);display:flex;align-items:center;gap:4px;"><span style="width:13px;height:13px;border-radius:50%;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);display:inline-flex;align-items:center;justify-content:center;font-size:7px;color:#4ade80;">&#10003;</span>MeitY AI Ethics Guidelines</span>
-</div>
-</div>
-""", unsafe_allow_html=True)
-# ── WORKFLOW STRIP ────────────────────────────────────────────────────────────
-st.markdown("""
-<div style="background:white;border-radius:10px;padding:14px 20px;margin-bottom:16px;border:0.5px solid #e2e8f0;">
-  <div style="font-size:9px;font-weight:700;color:#64748b;letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;">How Nirnay works — the review journey</div>
-  <div style="display:flex;align-items:flex-end;height:68px;gap:4px;">
-    <div style="flex:1;display:flex;flex-direction:column;align-items:center;">
-      <div style="width:100%;height:20px;background:#dbeafe;border-radius:3px 3px 0 0;"></div>
-      <div style="font-size:9px;font-weight:600;color:#475569;text-align:center;margin-top:4px;line-height:1.3;">Upload<br>document</div>
-    </div>
-    <div style="color:#cbd5e1;font-size:12px;padding-bottom:20px;">›</div>
-    <div style="flex:1;display:flex;flex-direction:column;align-items:center;">
-      <div style="width:100%;height:33px;background:#93c5fd;border-radius:3px 3px 0 0;"></div>
-      <div style="font-size:9px;font-weight:600;color:#475569;text-align:center;margin-top:4px;line-height:1.3;">Anonymise<br>PII</div>
-    </div>
-    <div style="color:#cbd5e1;font-size:12px;padding-bottom:20px;">›</div>
-    <div style="flex:1;display:flex;flex-direction:column;align-items:center;">
-      <div style="width:100%;height:44px;background:#3b82f6;border-radius:3px 3px 0 0;"></div>
-      <div style="font-size:9px;font-weight:600;color:#475569;text-align:center;margin-top:4px;line-height:1.3;">AI<br>processes</div>
-    </div>
-    <div style="color:#cbd5e1;font-size:12px;padding-bottom:20px;">›</div>
-    <div style="flex:1;display:flex;flex-direction:column;align-items:center;">
-      <div style="width:100%;height:55px;background:#1d4ed8;border-radius:3px 3px 0 0;"></div>
-      <div style="font-size:9px;font-weight:600;color:#475569;text-align:center;margin-top:4px;line-height:1.3;">Validate<br>Schedule Y</div>
-    </div>
-    <div style="color:#cbd5e1;font-size:12px;padding-bottom:20px;">›</div>
-    <div style="flex:1;display:flex;flex-direction:column;align-items:center;">
-      <div style="width:100%;height:66px;background:#0a2240;border-radius:3px 3px 0 0;"></div>
-      <div style="font-size:9px;font-weight:700;color:#0a2240;text-align:center;margin-top:4px;line-height:1.3;">Decision<br>made</div>
-    </div>
-  </div>
-</div>
-""", unsafe_allow_html=True)
-
+# ── HERO AND WORKFLOW REMOVED FOR POST-LOGIN VIEW ───────────────────────────
 
 # ── AI RECOMMENDATION CARD ────────────────────────────────────────────────────
 def ai_recommendation_card(finding, risk_level, action, detail=""):
@@ -616,7 +539,7 @@ with t0:
   <div style="position:absolute;right:12px;bottom:-8px;font-size:68px;font-weight:900;color:rgba(255,255,255,0.03);line-height:1;pointer-events:none;user-select:none;">{_fnum}</div>
   <div>
     <div style="width:38px;height:38px;border-radius:10px;background:{ICON_COLORS[_i]};display:flex;align-items:center;justify-content:center;margin-bottom:10px;">{ICONS[_i]}</div>
-    <div style="font-size:17px;font-weight:900;color:#FF9933;letter-spacing:-0.2px;line-height:1.1;margin-bottom:5px;">{_fnum} &middot; {_fname}</div>
+    <div style="font-size:16px;font-weight:800;color:#FF9933;letter-spacing:-0.2px;line-height:1.1;margin-bottom:5px;">{_fnum} &middot; {_fname}</div>
     <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.85);line-height:1.4;margin-bottom:7px;">{_ftitle}</div>
     <div style="font-size:10px;color:rgba(255,255,255,0.45);line-height:1.5;">{_fdesc}</div>
   </div>

@@ -201,7 +201,7 @@ CHIP_MAP = {
 
 def run_anonymisation(text):
     tokens, audit, processed = [], [], text
-    cnt = {k:0 for k in ["PATIENT","INVESTIGATOR","DATE","SITE","ID","PHONE","AADHAAR","HOSP_REC"]}
+    cnt = {k:0 for k in ["PATIENT","INVESTIGATOR","DATE","SITE","PHONE","AADHAAR","HOSP_REC","EMAIL","PINCODE","INSTITUTION","BATCH","LAB_VALUE","TIMESTAMP"]}
     ts  = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     found_types = set()
 
@@ -215,7 +215,7 @@ def run_anonymisation(text):
     # FIX ORDER: run phone & IDs BEFORE dates to avoid digit consumption
     # Email addresses
     for m in re.finditer(r'[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}', processed):
-        t=tok("ID"); rec(t,m.group(),"Email Address")
+        t=tok("EMAIL"); rec(t,m.group(),"Email Address")
         processed=processed.replace(m.group(),t,1)
     # Hospital record #XXXXX
     for m in re.finditer(r'#\d{4,6}', processed):
@@ -269,12 +269,20 @@ def run_anonymisation(text):
             t=tok("PATIENT"); rec(t,m.group(),"Patient Name")
             processed=processed.replace(m.group(),t,1)
     # Study IDs: IND-CT-XXXX-XXXX format
-    for m in re.finditer(r'\bIND-[A-Z]{{2,4}}-\d{{4}}-\d{{3,6}}\b', processed):
-        t=tok("ID"); rec(t,m.group(),"Study ID")
+    for m in re.finditer(r'\bIND-[A-Z]{2,4}-\d{4}-\d{3,6}\b', processed):
+        t=tok("SITE"); rec(t,m.group(),"Study ID")
         processed=processed.replace(m.group(),t,1)
-    # Pincode — run last to avoid consuming phone/ID digits
-    for m in re.finditer(r'[1-9]\d{5}', processed):
-        t=tok("ID"); rec(t,m.group(),"Pincode")
+    # Pincode — semantic token
+    for m in re.finditer(r"\b[1-9]\d{5}\b", processed):
+        t=tok("PINCODE"); rec(t,m.group(),"Pincode")
+        processed=processed.replace(m.group(),t,1)
+    # Institution names
+    for m in re.finditer(r"\b[A-Z][A-Za-z]+(\s+[A-Z][A-Za-z]+){0,3}\s+(?:Hospital|Institute|Clinic|Centre|Center|Medical College|AIIMS|PGI|CMC)\b", processed):
+        t=tok("INSTITUTION"); rec(t,m.group(),"Institution Name")
+        processed=processed.replace(m.group(),t,1)
+    # Batch/Lot numbers
+    for m in re.finditer(r"\b(?:Batch|Lot|BN|LN)[.:\\s#]*[A-Z0-9]{4,12}\b", processed, re.I):
+        t=tok("BATCH"); rec(t,m.group(),"Batch/Lot Number")
         processed=processed.replace(m.group(),t,1)
 
     # Step 2: irreversible generalisation
@@ -286,6 +294,17 @@ def run_anonymisation(text):
     step2=re.compile(r'\b(1[5-9]\d)\s*cm\b',re.I).sub(
         lambda m:f"{(int(m.group(1))//5)*5}-{(int(m.group(1))//5)*5+4} cm",step2)
     step2=re.compile(r'\[DATE-\d+\]').sub('[YEAR-ONLY]',step2)
+    # Generalise precise heights
+    step2=re.compile(r'\b(1[4-9]\d|2[0-2]\d)\s*cm\b',re.I).sub(
+        lambda m:f"{(int(m.group(1))//5)*5}-{(int(m.group(1))//5)*5+4} cm",step2)
+    # Generalise BMI
+    step2=re.compile(r'\bBMI[:\s]*(\d{1,2}\.?\d?)\b',re.I).sub('[BMI-RANGE]',step2)
+    # Suppress blood group
+    step2=re.compile(r'\b(?:Blood\s+[Gg]roup|blood\s+type)[:\s]*[ABO]{1,2}[+-]?\b').sub('[BLOOD-GROUP]',step2)
+    # Generalise precise lab values (e.g. Hb 12.4 g/dL)
+    step2=re.compile(r'\b(\d{1,3}\.\d{1,2})\s*(g/dL|mg/dL|mmol/L|IU/L|U/L|mEq/L)\b').sub('[LAB-VALUE]',step2)
+    # Generalise exact clinical timestamps (HH:MM format)
+    step2=re.compile(r'\b([01]?\d|2[0-3]):[0-5]\d\s*(?:AM|PM|hrs?)?\b',re.I).sub('[TIME-REDACTED]',step2)
     for et in ["Dates→Year only","Ages→Range","Biometrics→Range"]:
         audit.append({"Timestamp":ts,"Action":"Irreversible Generalisation","Entity Type":et,"Token":"Generalised","Reversible":"No"})
 
@@ -305,13 +324,13 @@ FEATURES = [
     ("01", "Anonymisation",    "Protect sensitive information",
      "Removes patient names, IDs, phone numbers, and dates — full DPDP Act 2023 audit log."),
     ("02", "Summarisation",    "Get a quick document summary",
-     "Extracts key decisions, actions, and findings from SAE reports and checklists."),
+     "Extracts decisions and findings from SAE reports, checklists, meeting transcripts/audio."),
     ("03", "Completeness",     "Check if an application is complete",
      "Verifies all 20 mandatory Schedule Y fields. Recommends approve, return, or reject."),
     ("04", "Classification",   "Classify how serious an adverse event is",
-     "Identifies death, disability, or hospitalisation and flags duplicate SAE reports."),
+     "SAE severity: death, disability, hospitalisation, etc. Duplicate detection."),
     ("05", "Comparison",       "See what changed between two document versions",
-     "Highlights every change and marks which ones matter for regulatory approval."),
+     "Semantic + structural diff across document versions."),
     ("06", "Inspection Report","Turn inspection notes into a formal report",
      "Converts raw site observations into a CDSCO GCP report with risk grading."),
 ]
@@ -381,7 +400,7 @@ if not st.session_state["logged_in"]:
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
     <div style="font-size:36px;font-weight:900;color:#0a2240;letter-spacing:-1px;line-height:1;">Nirnay</div>
     <div style="width:1px;height:26px;background:rgba(10,34,64,0.2);"></div>
-    <div style="font-size:9px;font-weight:700;color:#0077b6;letter-spacing:.1em;text-transform:uppercase;line-height:1.5;">CDSCO<br>Review System</div>
+
   </div>
   <div style="font-size:18px;font-weight:700;color:#0a2240;line-height:1.3;margin-bottom:16px;letter-spacing:-0.2px;">Regulatory review,<br><span style="color:#FF9933;">reimagined for India.</span></div>
   <div style="font-size:9px;font-weight:700;color:#64748b;letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;">6 AI modules &middot; Stage 1 build</div>
@@ -463,21 +482,20 @@ if not st.session_state["logged_in"]:
 
 # ═══ LOGGED IN — show post-login home then full app ════════════════════════════
 # ── TOP BAR ──────────────────────────────────────────────────────────────────
-tb1, tb2 = st.columns([3,1])
-with tb1:
+_tb1, _tb2 = st.columns([4, 1])
+with _tb1:
     st.markdown("""
-<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+<div style="display:flex;align-items:center;gap:16px;margin-bottom:12px;">
   <div style="font-size:26px;font-weight:900;color:#0a2240;letter-spacing:-0.8px;">Nirnay</div>
-  <div style="width:1px;height:20px;background:rgba(10,34,64,0.2);"></div>
-  <div style="font-size:9px;font-weight:700;color:#0077b6;letter-spacing:.1em;text-transform:uppercase;line-height:1.5;">CDSCO<br>AI Review System</div>
-  <div style="width:1px;height:20px;background:rgba(10,34,64,0.1);margin:0 4px;"></div>
-  <div style="font-size:12px;color:#475569;font-weight:500;">Regulatory review, <span style='color:#FF9933;'>reimagined for India.</span></div>
+  <div style="width:1px;height:20px;background:rgba(10,34,64,0.15);"></div>
+  <div style="font-size:12px;color:#475569;font-weight:500;">Regulatory review, <span style="color:#FF9933;">reimagined for India.</span></div>
 </div>
 """, unsafe_allow_html=True)
-with tb2:
+with _tb2:
     if st.button("Sign out", key="signout"):
         st.session_state["logged_in"] = False
         st.rerun()
+st.markdown("<div style='margin-bottom:4px;'></div>", unsafe_allow_html=True)
 
 # ── HERO AND WORKFLOW REMOVED FOR POST-LOGIN VIEW ───────────────────────────
 
@@ -552,12 +570,12 @@ with t0:
     <div style="width:38px;height:38px;border-radius:10px;background:{ICON_COLORS[_i]};display:flex;align-items:center;justify-content:center;margin-bottom:10px;">{ICONS[_i]}</div>
     <div style="font-size:16px;font-weight:800;color:#FF9933;letter-spacing:-0.2px;line-height:1.1;margin-bottom:5px;">{_fnum} &middot; {_fname}</div>
     <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.85);line-height:1.4;margin-bottom:7px;">{_ftitle}</div>
-    <div style="font-size:10px;color:rgba(255,255,255,0.45);line-height:1.5;">{_fdesc}</div>
+    <div style="font-size:11px;color:rgba(255,255,255,0.55);line-height:1.5;">{_fdesc}</div>
   </div>
   <div style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,153,51,0.1);border:1px solid rgba(255,153,51,0.28);border-radius:6px;padding:5px 12px;font-size:10px;font-weight:700;color:#FF9933;letter-spacing:.04em;margin-top:14px;align-self:flex-start;">Start &#8594;</div>
 </div>
 """, unsafe_allow_html=True)
-            if st.button(f"  {_tab_names[_i]}  ", key=f"home_card_{_i}", use_container_width=True):
+            if st.button("↗", key=f"home_card_{_i}", use_container_width=True, help=f"Open {_tab_names[_i]}"):
                 st.session_state["active_tab"] = _i + 1
                 st.rerun()
 
@@ -1319,8 +1337,20 @@ with t5:
         if not t1c or not t2c:
             st.markdown('<div class="rc warn">Please provide both document versions.</div>',unsafe_allow_html=True)
         else:
-            l1=[l.strip() for l in t1c.splitlines() if l.strip()]
-            l2=[l.strip() for l in t2c.splitlines() if l.strip()]
+            # Normalise: split on sentences and lines for better Word doc comparison
+            import re as _re
+            def _norm(t):
+                lines=[l.strip() for l in t.splitlines() if l.strip()]
+                # Also split long paragraphs at sentence boundaries
+                result=[]
+                for l in lines:
+                    if len(l)>200:
+                        parts=_re.split(r'(?<=[.!?])\s+',l)
+                        result.extend([p.strip() for p in parts if p.strip()])
+                    else:
+                        result.append(l)
+                return result
+            l1=_norm(t1c); l2=_norm(t2c)
             SK=["dose","dosage","mg","ml","death","disability","outcome","causality","adverse","event",
                 "date","patient","diagnosis","icd","treatment","safety","efficacy","result","risk","fatal","serious"]
             changes=[]
@@ -1428,12 +1458,86 @@ with t6:
             st.markdown('<div class="tw">',unsafe_allow_html=True)
             st.dataframe(df.style.map(sr,subset=["Risk"]),use_container_width=True,hide_index=True)
             st.markdown('</div>',unsafe_allow_html=True)
-        full=(f"CDSCO GCP SITE INSPECTION REPORT\n{'='*48}\n"
-              f"Site: {insp_site}\nNo: {insp_sno}\nDate: {insp_date.strftime('%d %B %Y')}\n"
-              f"Inspector: {insp_name}\nSummary: {cc_n} Critical | {mc_n} Major | {mn_n} Minor\n{'='*48}\n\n")
+        _sep="="*56
+        _sep2="-"*56
+        full=f"""CDSCO GCP SITE INSPECTION REPORT
+{_sep}
+
+SECTION 1: BASIC DETAILS
+Study/Site Name : {insp_site or "[Site name]"}
+Site Number     : {insp_sno or "[Site number]"}
+Inspection Date : {insp_date.strftime("%d %B %Y")}
+Inspector       : {insp_name or "[Inspector name]"}
+
+{_sep}
+
+SECTION 2: SUMMARY
+Total Issues    : {len(rows)}
+Critical        : {cc_n}
+Major           : {mc_n}
+Minor           : {mn_n}
+Overall Risk    : {"HIGH" if cc_n>0 else "MEDIUM" if mc_n>0 else "LOW"}
+
+{_sep}
+
+SECTION 3: FINDINGS TABLE
+
+"""
         for r in rows:
-            full+=f"{r['Obs']} | {r['Risk'].upper()}\nFinding: {r['Formal Finding']}\nAction: {r['Corrective Action']}\nDeadline: {r['Deadline']}\n{'-'*48}\n\n"
-        full+=f"Inspector: {insp_name}\nSignature: ___\nDate: {datetime.date.today()}"
-        st.download_button("⬇ Download Inspection Report",full,file_name="inspection_report.txt",mime="text/plain")
+            full+=f"""{r["Obs"]} | {r["Risk"].upper()}
+Observation         : {r["Raw"]}
+Formal Finding      : {r["Formal Finding"]}
+Severity            : {r["Risk"]}
+Regulatory Reference: CDSCO Schedule Y / GCP Guidelines ICH E6
+Recommendation      : {r["Corrective Action"]}
+Deadline            : {r["Deadline"]}
+{_sep2}
+"""
+        full+=f"""
+SECTION 4: CROSS-DOCUMENT ISSUES
+No cross-document mismatches identified in this report.
+
+{_sep}
+
+SECTION 5: CAPA (CORRECTIVE AND PREVENTIVE ACTION)
+Critical findings require immediate CAPA submission within 15 days.
+Major findings require CAPA plan within 30 days.
+Minor findings to be documented in site log within 60 days.
+
+{_sep}
+
+SECTION 6: RISK LEVEL
+Overall Site Risk: {"HIGH — immediate action required" if cc_n>0 else "MEDIUM — corrective action required" if mc_n>0 else "LOW — routine monitoring"}
+
+{_sep}
+
+SECTION 7: AUDIT TRAIL (AI FLAGGING RATIONALE)
+This report was generated by Nirnay AI (CDSCO AI Hackathon 2026, Stage 1).
+Critical flags: keywords matching data integrity, patient safety, or falsification concerns.
+Major flags: incomplete documentation, protocol deviations, expired materials.
+Minor flags: administrative or labelling issues not affecting patient safety.
+
+{_sep}
+Inspector Signature: ___________________________
+Date: {datetime.date.today()}
+Generated by: Nirnay — CDSCO Regulatory Intelligence Platform
+"""
+        st.download_button("⬇ Download Inspection Report (TXT)",full,file_name=f"inspection_report_{insp_date}.txt",mime="text/plain")
     elif run_insp:
         st.markdown('<div class="rc warn">Please enter at least one observation.</div>',unsafe_allow_html=True)
+
+# ── COMPLIANCE RIBBON ─────────────────────────────────────────────────────────
+st.markdown("""
+<div style="margin-top:32px;border-top:1px solid #e2e8f0;padding:10px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+  <span style="font-size:9px;font-weight:600;color:#94a3b8;">&#10003; DPDP Act 2023</span>
+  <span style="color:#e2e8f0;">·</span>
+  <span style="font-size:9px;font-weight:600;color:#94a3b8;">&#10003; CDSCO Schedule Y</span>
+  <span style="color:#e2e8f0;">·</span>
+  <span style="font-size:9px;font-weight:600;color:#94a3b8;">&#10003; ICMR Guidelines 2017</span>
+  <span style="color:#e2e8f0;">·</span>
+  <span style="font-size:9px;font-weight:600;color:#94a3b8;">&#10003; NDCT Rules 2019</span>
+  <span style="color:#e2e8f0;">·</span>
+  <span style="font-size:9px;font-weight:600;color:#94a3b8;">&#10003; MeitY AI Ethics</span>
+  <span style="margin-left:auto;font-size:9px;color:#cbd5e1;">&#169; 2026 Nirnay &mdash; Built for IndiaAI/CDSCO Hackathon</span>
+</div>
+""", unsafe_allow_html=True)

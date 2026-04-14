@@ -109,7 +109,7 @@ section[data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"]{backgrou
 
 .audio-note{background:#fef9c3;border:1px solid #fbbf24;border-radius:8px;padding:10px 14px;font-size:12px;color:#78350f;margin:8px 0;}
 
-.stButton>button[kind="primary"]{background:linear-gradient(135deg,#003087,#0052cc)!important;color:white!important;border:none!important;border-radius:8px!important;font-weight:600!important;font-size:13px!important;padding:10px 22px!important;box-shadow:0 2px 8px rgba(0,48,135,0.25)!important;}
+.stButton>button[kind="primary"]{background:#0a2240!important;color:white!important;border:none!important;border-radius:8px!important;font-weight:600!important;font-size:12px!important;padding:8px 16px!important;}
 .stButton>button[kind="primary"]:hover{box-shadow:0 4px 16px rgba(0,48,135,0.35)!important;transform:translateY(-1px)!important;}
 .stDownloadButton>button{border-radius:8px!important;border:1.5px solid #003087!important;color:#003087!important;font-weight:500!important;font-size:13px!important;}
 .stTextArea textarea{border:1.5px solid #e2e8f0!important;border-radius:10px!important;font-size:13px!important;background:#fafbfc!important;}
@@ -326,7 +326,7 @@ FEATURES = [
     ("02", "Summarisation",    "Get a quick document summary",
      "Extracts decisions and findings from SAE reports, checklists, meeting transcripts/audio."),
     ("03", "Completeness",     "Check if an application is complete",
-     "Verifies all 20 mandatory Schedule Y fields. Recommends approve, return, or reject."),
+     "Verifies all 20 mandatory fields. Recommends approve, return, or reject."),
     ("04", "Classification",   "Classify how serious an adverse event is",
      "SAE severity: death, disability, hospitalisation, etc. Duplicate detection."),
     ("05", "Comparison",       "See what changed between two document versions",
@@ -570,12 +570,13 @@ with t0:
     <div style="width:38px;height:38px;border-radius:10px;background:{ICON_COLORS[_i]};display:flex;align-items:center;justify-content:center;margin-bottom:10px;">{ICONS[_i]}</div>
     <div style="font-size:16px;font-weight:800;color:#FF9933;letter-spacing:-0.2px;line-height:1.1;margin-bottom:5px;">{_fnum} &middot; {_fname}</div>
     <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.85);line-height:1.4;margin-bottom:7px;">{_ftitle}</div>
-    <div style="font-size:11px;color:rgba(255,255,255,0.55);line-height:1.5;">{_fdesc}</div>
+    <div style="font-size:13px;color:rgba(255,255,255,0.6);line-height:1.5;">{_fdesc}</div>
   </div>
   <div style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,153,51,0.1);border:1px solid rgba(255,153,51,0.28);border-radius:6px;padding:5px 12px;font-size:10px;font-weight:700;color:#FF9933;letter-spacing:.04em;margin-top:14px;align-self:flex-start;">Start &#8594;</div>
 </div>
 """, unsafe_allow_html=True)
-            if st.button("↗", key=f"home_card_{_i}", use_container_width=True, help=f"Open {_tab_names[_i]}"):
+            # Card click = navigate to feature tab
+            if st.button(f"Start — {_tab_names[_i]}", key=f"home_card_{_i}", use_container_width=True, type="primary"):
                 st.session_state["active_tab"] = _i + 1
                 st.rerun()
 
@@ -1076,7 +1077,7 @@ with t3:
     st.markdown("""
     <div class="sec-hd">
       <div class="sec-ic ic-purple">✅</div>
-      <div><h2>Completeness Assessment — Schedule Y</h2>
+      <div><h2>Completeness Assessment</h2>
       <p>Upload application document · 20 mandatory fields · RAG status · Approve / Return / Reject recommendation</p></div>
     </div>
     """, unsafe_allow_html=True)
@@ -1141,21 +1142,21 @@ with t3:
             cc="ok" if sc>=85 and not cm else "warn" if sc>=60 else "err"
             c1,c2,c3,c4=st.columns(4)
             c1.metric("Total",20);c2.metric("Present",pre);c3.metric("Incomplete",inc);c4.metric("Missing",mis)
-            st.progress(sc/100,text=f"Schedule Y Completeness: {sc}%")
+            st.progress(sc/100,text=f"Application completeness: {sc}%")
             _comp_risk = "Critical" if cm else "High" if sc < 60 else "Medium" if sc < 85 else "Low"
-            _comp_action = (f"Reject — {len(cm)} critical Schedule Y field(s) missing: {', '.join(cm[:3])}{'...' if len(cm)>3 else ''}. Application cannot proceed." if cm
+            _comp_action = (f"Reject — {len(cm)} critical field(s) missing: {', '.join(cm[:3])}{'...' if len(cm)>3 else ''}. Application cannot proceed." if cm
                            else f"Return for completion — {missing} field(s) need attention before technical review."
                            if sc < 85 else "Approve for technical review — all critical fields present.")
             ai_recommendation_card(
-                f"Schedule Y completeness: {sc}% · {rec}",
+                f"Application completeness: {sc}% · {rec}",
                 _comp_risk,
                 _comp_action,
-                f"Fields checked: 20 mandatory Schedule Y fields · Present: {pre} · Missing: {missing} · Incomplete: {inc}"
+                f"Fields checked: 20 mandatory fields · Present: {pre} · Missing: {missing} · Incomplete: {inc}"
             )
             st.markdown(f'<div class="rc {cc}"><b>Recommendation:</b> {rec}</div>',unsafe_allow_html=True)
             if cm: st.error(f"Critical missing: {', '.join(cm)}")
             if mm: st.warning(f"Major missing: {', '.join(mm)}")
-            with st.expander("Full Schedule Y Field Status",expanded=True):
+            with st.expander("Full Field Status",expanded=True):
                 def srag(v):
                     if "Green" in str(v): return "background-color:#dcfce7;color:#15803d;font-weight:600"
                     if "Amber" in str(v): return "background-color:#fef9c3;color:#a16207;font-weight:600"

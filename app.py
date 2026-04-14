@@ -158,7 +158,11 @@ def extract_text(uploaded_file):
         return "", None
     name = uploaded_file.name.lower()
     try:
+        # Always seek to start before reading — file pointer may be consumed on re-run
+        uploaded_file.seek(0)
         raw = uploaded_file.read()
+        if not raw:
+            return "", "File appears to be empty or could not be read."
         if name.endswith(".docx"):
             if not DOCX_OK:
                 return "", "Add 'python-docx' to requirements.txt"
@@ -201,78 +205,102 @@ CHIP_MAP = {
 
 def run_anonymisation(text):
     tokens, audit, processed = [], [], text
-    cnt = {k:0 for k in ["PATIENT","INVESTIGATOR","DATE","SITE","PHONE","AADHAAR","HOSP_REC","EMAIL","PINCODE","INSTITUTION","BATCH","LAB_VALUE","TIMESTAMP"]}
+    cnt = {k:0 for k in [
+        "PATIENT","INVESTIGATOR","DATE","SITE","PHONE","AADHAAR","HOSP_REC",
+        "EMAIL","PINCODE","INSTITUTION","BATCH","URL","IP_ADDR","DEVICE_ID",
+        "ACCOUNT_NO","CERT_NO","BIOMETRIC"
+    ]}
     ts  = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     found_types = set()
 
     def tok(kind):
-        cnt[kind]+=1; return f"[{kind}-{cnt[kind]:03d}]"
-    def rec(t,orig,etype):
+        cnt[kind] += 1; return f"[{kind}-{cnt[kind]:03d}]"
+    def rec(t, orig, etype):
         tokens.append({"Token":t,"Original Value":orig,"Entity Type":etype,"Step":"Step 1"})
         audit.append({"Timestamp":ts,"Action":"Pseudonymised","Entity Type":etype,"Token":t,"Reversible":"Yes"})
         found_types.add(etype)
 
-    # FIX ORDER: run phone & IDs BEFORE dates to avoid digit consumption
-    # Email addresses
+    # URLs (TD1 #13) — run first
+    for m in re.finditer(r'https?://[^\s,;"\'<>]+', processed):
+        t=tok("URL"); rec(t,m.group(),"Web URL")
+        processed=processed.replace(m.group(),t,1)
+    # IP addresses (TD1 #14)
+    for m in re.finditer(r'\b(?:\d{1,3}\.){3}\d{1,3}\b', processed):
+        t=tok("IP_ADDR"); rec(t,m.group(),"IP Address")
+        processed=processed.replace(m.group(),t,1)
+    # Email addresses (TD1 #5)
     for m in re.finditer(r'[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}', processed):
         t=tok("EMAIL"); rec(t,m.group(),"Email Address")
         processed=processed.replace(m.group(),t,1)
-    # Hospital record #XXXXX
+    # Hospital record #XXXXX (TD1 #7)
     for m in re.finditer(r'#\d{4,6}', processed):
         t=tok("HOSP_REC"); rec(t,m.group(),"Hospital Record No.")
         processed=processed.replace(m.group(),t,1)
-    # Aadhaar XXXX-XXXX-XXXX
-    for m in re.finditer(r'\d{4}[-\s]\d{4}[-\s]\d{4}', processed):
+    # Aadhaar XXXX-XXXX-XXXX (TD1 #6)
+    for m in re.finditer(r'\d{4}[-\s]\d{4}[-\s]\d{4}', processed):
         t=tok("AADHAAR"); rec(t,m.group(),"Aadhaar Number")
         processed=processed.replace(m.group(),t,1)
-    # Phone — run BEFORE dates so digits not consumed
-    # +91 22 5550 1234 format
+    # Device / serial numbers (TD1 #12)
+    for m in re.finditer(r'(?:S/?N|Serial\s*No?\.?|Device\s*ID)[:\s]*[A-Z0-9\-]{4,16}', processed, re.I):
+        t=tok("DEVICE_ID"); rec(t,m.group(),"Device/Serial Number")
+        processed=processed.replace(m.group(),t,1)
+    # Account numbers (TD1 #9)
+    for m in re.finditer(r'(?:A/?C|Account)\s*(?:No\.?|Number)?[:\s]*\d{6,18}', processed, re.I):
+        t=tok("ACCOUNT_NO"); rec(t,m.group(),"Account Number")
+        processed=processed.replace(m.group(),t,1)
+    # Certificate / licence numbers (TD1 #10)
+    for m in re.finditer(r'(?:Licen[sc]e|Cert(?:ificate)?|Reg(?:istration)?)\s*(?:No\.?|Number)?[:\s]*[A-Z0-9/\-]{4,16}', processed, re.I):
+        t=tok("CERT_NO"); rec(t,m.group(),"Certificate/Licence Number")
+        processed=processed.replace(m.group(),t,1)
+    # Biometric identifiers (TD1 #15)
+    for m in re.finditer(r'\b(?:fingerprint|retina\s*scan|iris\s*scan|biometric)\s*(?:ID|code|data|ref(?:erence)?)?[:\s]*[A-Z0-9\-]{0,16}', processed, re.I):
+        t=tok("BIOMETRIC"); rec(t,m.group(),"Biometric Identifier")
+        processed=processed.replace(m.group(),t,1)
+    # Phone — run BEFORE dates (TD1 #4)
     for m in re.finditer(r'\+91[\s-]?\d{2,4}[\s-]\d{4}[\s-]\d{4}', processed):
         t=tok("PHONE"); rec(t,m.group(),"Phone Number")
         processed=processed.replace(m.group(),t,1)
-    # 10-digit mobile
-    for m in re.finditer(r'[6-9]\d{9}', processed):
+    for m in re.finditer(r'[6-9]\d{9}', processed):
         t=tok("PHONE"); rec(t,m.group(),"Phone Number")
         processed=processed.replace(m.group(),t,1)
-    # FIX 1: non-capturing group so finditer returns full match not just prefix
-    # LH-MUM-042, PT-2024-001, SITE-DEL-001
-    for m in re.finditer(r'(?:PT|SITE|IND|CT|SUBJ|INV|LH|MH|DL|CH)[-]\w{2,8}[-]\w{2,8}', processed):
+    # Regulatory IDs (TD1 #17)
+    for m in re.finditer(r'(?:PT|SITE|IND|CT|SUBJ|INV|LH|MH|DL|CH)[-]\w{2,8}[-]\w{2,8}', processed):
         o=m.group()
         if any(o.startswith(p) for p in ["PT","SUBJ","LH","MH","DL"]): t=tok("PATIENT"); et="Patient ID"
         elif o.startswith("SITE"): t=tok("SITE"); et="Site Number"
         elif o.startswith("INV"):  t=tok("INVESTIGATOR"); et="Investigator ID"
-        else: t=tok("ID"); et="Regulatory ID"
+        else: t=tok("SITE"); et="Regulatory ID"
         rec(t,o,et); processed=processed.replace(o,t,1)
-    # Dates — run AFTER phone/IDs (fixes digit consumption order)
+    # Dates — run AFTER phone/IDs (TD1 #3)
     for pat in [
-        re.compile(r'\d{1,2}[-/]\w{2,9}[-/]\d{2,4}'),
-        re.compile(r'\d{1,2}[-/]\d{1,2}[-/]\d{2,4}'),
-        re.compile(r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},?\s+\d{4}',re.I),
-        re.compile(r'\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}',re.I),
+        re.compile(r'\d{1,2}[-/]\w{2,9}[-/]\d{2,4}'),
+        re.compile(r'\d{1,2}[-/]\d{1,2}[-/]\d{2,4}'),
+        re.compile(r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},?\s+\d{4}',re.I),
+        re.compile(r'\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}',re.I),
     ]:
         for m in pat.finditer(processed):
             t=tok("DATE"); rec(t,m.group(),"Date / DOB")
             processed=processed.replace(m.group(),t,1)
-    # FIX 2: lookaround instead of  for initials —  fails next to periods
+    # Patient initials (TD1 #1)
     for m in re.finditer(r'(?<!\w)[A-Z]\.[A-Z]\.(?!\w)', processed):
         t=tok("PATIENT"); rec(t,m.group(),"Patient Initials")
         processed=processed.replace(m.group(),t,1)
-    # Dr. + Indian name
-    name_re=re.compile(r'(Dr\.?\s+)('+'|'.join(INDIAN_FIRST)+r')\s+('+'|'.join(INDIAN_LAST)+r')')
+    # Dr. + Indian name — investigator (TD1 #1)
+    name_re=re.compile(r'(Dr\.?\s+)('+'|'.join(INDIAN_FIRST)+r')\s+('+'|'.join(INDIAN_LAST)+r')')
     for m in name_re.finditer(processed):
         t=tok("INVESTIGATOR"); rec(t,m.group(),"Investigator Name")
         processed=processed.replace(m.group(),t,1)
-    # Non-Dr Indian name
-    name_re2=re.compile(r'('+'|'.join(INDIAN_FIRST)+r')\s+('+'|'.join(INDIAN_LAST)+r')')
+    # Non-Dr Indian name — patient (TD1 #1)
+    name_re2=re.compile(r'('+'|'.join(INDIAN_FIRST)+r')\s+('+'|'.join(INDIAN_LAST)+r')')
     for m in name_re2.finditer(processed):
         if m.group() in processed:
             t=tok("PATIENT"); rec(t,m.group(),"Patient Name")
             processed=processed.replace(m.group(),t,1)
-    # Study IDs: IND-CT-XXXX-XXXX format
+    # Study IDs: IND-CT-XXXX-XXXX
     for m in re.finditer(r'\bIND-[A-Z]{2,4}-\d{4}-\d{3,6}\b', processed):
         t=tok("SITE"); rec(t,m.group(),"Study ID")
         processed=processed.replace(m.group(),t,1)
-    # Pincode — semantic token
+    # Pincode (TD1 #2)
     for m in re.finditer(r"\b[1-9]\d{5}\b", processed):
         t=tok("PINCODE"); rec(t,m.group(),"Pincode")
         processed=processed.replace(m.group(),t,1)
@@ -281,35 +309,43 @@ def run_anonymisation(text):
         t=tok("INSTITUTION"); rec(t,m.group(),"Institution Name")
         processed=processed.replace(m.group(),t,1)
     # Batch/Lot numbers
-    for m in re.finditer(r"\b(?:Batch|Lot|BN|LN)[.:\\s#]*[A-Z0-9]{4,12}\b", processed, re.I):
+    for m in re.finditer(r"\b(?:Batch|Lot|BN|LN)[.:\s#]*[A-Z0-9]{4,12}\b", processed, re.I):
         t=tok("BATCH"); rec(t,m.group(),"Batch/Lot Number")
         processed=processed.replace(m.group(),t,1)
 
-    # Step 2: irreversible generalisation
-    step2=processed
+    # Step 2: Irreversible generalisation (TD2)
+    step2 = processed
     step2=re.compile(r'\b(\d{2})\s*(?:years?|yrs?)(?:\s*old)?\b',re.I).sub(
         lambda m:f"{(int(m.group(1))//5)*5}-{(int(m.group(1))//5)*5+4} years",step2)
     step2=re.compile(r'\b(\d{2,3})\s*kg\b',re.I).sub(
         lambda m:f"{(int(m.group(1))//10)*10}-{(int(m.group(1))//10)*10+9} kg",step2)
-    step2=re.compile(r'\b(1[5-9]\d)\s*cm\b',re.I).sub(
-        lambda m:f"{(int(m.group(1))//5)*5}-{(int(m.group(1))//5)*5+4} cm",step2)
-    step2=re.compile(r'\[DATE-\d+\]').sub('[YEAR-ONLY]',step2)
-    # Generalise precise heights
     step2=re.compile(r'\b(1[4-9]\d|2[0-2]\d)\s*cm\b',re.I).sub(
         lambda m:f"{(int(m.group(1))//5)*5}-{(int(m.group(1))//5)*5+4} cm",step2)
-    # Generalise BMI
+    step2=re.compile(r'\[DATE-\d+\]').sub('[YEAR-ONLY]',step2)
     step2=re.compile(r'\bBMI[:\s]*(\d{1,2}\.?\d?)\b',re.I).sub('[BMI-RANGE]',step2)
-    # Suppress blood group
     step2=re.compile(r'\b(?:Blood\s+[Gg]roup|blood\s+type)[:\s]*[ABO]{1,2}[+-]?\b').sub('[BLOOD-GROUP]',step2)
-    # Generalise precise lab values (e.g. Hb 12.4 g/dL)
-    step2=re.compile(r'\b(\d{1,3}\.\d{1,2})\s*(g/dL|mg/dL|mmol/L|IU/L|U/L|mEq/L)\b').sub('[LAB-VALUE]',step2)
-    # Generalise exact clinical timestamps (HH:MM format)
+    step2=re.compile(r'\b\d{1,3}\.\d{1,2}\s*(?:g/dL|mg/dL|mmol/L|IU/L|U/L|mEq/L)\b').sub('[LAB-VALUE]',step2)
     step2=re.compile(r'\b([01]?\d|2[0-3]):[0-5]\d\s*(?:AM|PM|hrs?)?\b',re.I).sub('[TIME-REDACTED]',step2)
-    for et in ["Dates→Year only","Ages→Range","Biometrics→Range"]:
+    # City -> geographic tier (TD2)
+    _city_subs = [
+        (r'\b(?:New\s+Delhi|Delhi)\b',                               '[TIER-1 CITY, NORTH INDIA]'),
+        (r'\b(?:Mumbai|Pune)\b',                                      '[TIER-1 CITY, WEST INDIA]'),
+        (r'\b(?:Bengaluru|Bangalore|Chennai|Hyderabad)\b',            '[TIER-1 CITY, SOUTH INDIA]'),
+        (r'\bKolkata\b',                                               '[TIER-1 CITY, EAST INDIA]'),
+        (r'\b(?:Jaipur|Lucknow|Kanpur|Agra|Varanasi|Chandigarh|Amritsar)\b', '[TIER-2 CITY, NORTH INDIA]'),
+        (r'\b(?:Ahmedabad|Surat|Vadodara|Nagpur)\b',                  '[TIER-2 CITY, WEST INDIA]'),
+        (r'\b(?:Coimbatore|Kochi|Thiruvananthapuram|Visakhapatnam)\b','[TIER-2 CITY, SOUTH INDIA]'),
+        (r'\b(?:Bhubaneswar|Patna|Guwahati)\b',                       '[TIER-2 CITY, EAST INDIA]'),
+    ]
+    for _pat, _rep in _city_subs:
+        step2 = re.compile(_pat, re.I).sub(_rep, step2)
+
+    for et in ["Dates->Year only","Ages->5-year band","Biometrics->Range","City->Tier (k-anonymity)"]:
         audit.append({"Timestamp":ts,"Action":"Irreversible Generalisation","Entity Type":et,"Token":"Generalised","Reversible":"No"})
 
     return {"step1":processed,"step2":step2,"tokens":tokens,"audit":audit,
             "types":list(found_types),"count":len(tokens)}
+
 
 
 # ── SIDEBAR REMOVED — navigation via tabs, brand in hero ─────────────────────
@@ -326,13 +362,13 @@ FEATURES = [
     ("02", "Summarisation",    "Get a quick document summary",
      "Extracts decisions and findings from SAE reports, checklists, meeting transcripts/audio."),
     ("03", "Completeness",     "Check if an application is complete",
-     "Verifies all 20 mandatory fields. Recommends approve, return, or reject."),
+     "Verifies and flags fields. Recommends approve, return, or reject."),
     ("04", "Classification",   "Classify how serious an adverse event is",
-     "SAE severity: death, disability, hospitalisation, etc. Duplicate detection."),
+     "SAE severity analysis + duplicate detection."),
     ("05", "Comparison",       "See what changed between two document versions",
      "Semantic + structural diff across document versions."),
     ("06", "Inspection Report","Turn inspection notes into a formal report",
-     "Converts raw site observations into a CDSCO GCP report with risk grading."),
+     "Converts raw site observations into a CDSCO report with risk grading."),
 ]
 
 ICONS = [
@@ -487,7 +523,6 @@ with _tb1:
     st.markdown("""
 <div style="display:flex;align-items:center;gap:16px;margin-bottom:12px;">
   <div style="font-size:26px;font-weight:900;color:#0a2240;letter-spacing:-0.8px;">Nirnay</div>
-  <div style="width:1px;height:20px;background:rgba(10,34,64,0.15);"></div>
   <div style="font-size:12px;color:#475569;font-weight:500;">Regulatory review, <span style="color:#FF9933;">reimagined for India.</span></div>
 </div>
 """, unsafe_allow_html=True)
@@ -568,15 +603,14 @@ with t0:
   <div style="position:absolute;right:12px;bottom:-8px;font-size:68px;font-weight:900;color:rgba(255,255,255,0.03);line-height:1;pointer-events:none;user-select:none;">{_fnum}</div>
   <div>
     <div style="width:38px;height:38px;border-radius:10px;background:{ICON_COLORS[_i]};display:flex;align-items:center;justify-content:center;margin-bottom:10px;">{ICONS[_i]}</div>
-    <div style="font-size:16px;font-weight:800;color:#FF9933;letter-spacing:-0.2px;line-height:1.1;margin-bottom:5px;">{_fnum} &middot; {_fname}</div>
-    <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.85);line-height:1.4;margin-bottom:7px;">{_ftitle}</div>
+    <div style="font-size:17px;font-weight:800;color:#FF9933;letter-spacing:-0.2px;line-height:1.1;margin-bottom:5px;">{_fnum} &middot; {_fname}</div>
+    <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.85);line-height:1.4;margin-bottom:7px;">{_ftitle}</div>
     <div style="font-size:13px;color:rgba(255,255,255,0.6);line-height:1.5;">{_fdesc}</div>
   </div>
-  <div style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,153,51,0.1);border:1px solid rgba(255,153,51,0.28);border-radius:6px;padding:5px 12px;font-size:10px;font-weight:700;color:#FF9933;letter-spacing:.04em;margin-top:14px;align-self:flex-start;">Start &#8594;</div>
 </div>
 """, unsafe_allow_html=True)
             # Card click = navigate to feature tab
-            if st.button(f"Start — {_tab_names[_i]}", key=f"home_card_{_i}", use_container_width=True, type="primary"):
+            if st.button(f"Start → {_tab_names[_i]}", key=f"home_card_{_i}", use_container_width=True, type="primary"):
                 st.session_state["active_tab"] = _i + 1
                 st.rerun()
 
@@ -967,8 +1001,12 @@ with t2:
     with col1: run_sum = st.button("Summarise document", type="primary", use_container_width=True)
     with col2:
         if st.button("🗑 Clear ", use_container_width=True):
-            st.session_state["sum_text"]=""
-            st.session_state["sum_ta"]=""
+            st.session_state["sum_text"] = ""
+            st.session_state["sum_ta"] = ""
+            # Also clear file uploader state so re-upload works cleanly
+            for _k in ["sum_up","sum_up2"]:
+                if _k in st.session_state:
+                    del st.session_state[_k]
             st.rerun()
 
     if run_sum:
@@ -982,13 +1020,17 @@ with t2:
                            "STANDARD" if any(w in tl for w in ["hospitalised","admitted","icu","hospital","hospitalization"]) else "LOW"
                 causality = "Possibly Related" if "possibly" in tl else "Probably Related" if "probably" in tl else \
                             "Unrelated" if "unrelated" in tl else "Definitely Related" if "definitely" in tl else "Under Assessment"
-                outcome = "Fatal" if any(w in tl for w in ["died","death","fatal"]) else \
-                          "Recovered" if any(w in tl for w in ["recovered","resolution","normal sinus"]) else \
-                          "Recovering" if "recovering" in tl else "Ongoing"
+                # FIX D4: Check recovered/recovering BEFORE fatal so "patient recovered" isn't misclassified
+                outcome = "Recovered" if any(w in tl for w in ["recovered","recovery","resolution","resolved","normal sinus","discharged"]) else \
+                          "Recovering" if "recovering" in tl else \
+                          "Fatal" if any(w in tl for w in ["died","death","fatal","deceased","mortality"]) else "Ongoing"
                 cc = "err" if priority=="URGENT" else "warn" if priority=="STANDARD" else "ok"
                 _risk_map = {"URGENT":"Critical","STANDARD":"Medium","LOW":"Low"}
+                # FIX D4: Correct regulatory timelines — DEATH=7-day, DISABILITY/others=15-day
+                _is_death = any(w in tl for w in ["death","fatal","died","deceased","mortality"])
+                _timeline_urgent = "Expedited 7-day" if _is_death else "Expedited 15-day"
                 _action_map = {
-                    "URGENT": "Immediate escalation to DCGI required. Expedited 7-day report applicable.",
+                    "URGENT": f"Immediate escalation to DCGI required. {_timeline_urgent} report applicable under Schedule Y.",
                     "STANDARD": "Route to standard SAE review queue. Expedited 15-day report required.",
                     "LOW": "Log as periodic SAE. Standard 90-day reporting timeline applies."
                 }
@@ -1003,9 +1045,40 @@ with t2:
                 c1.metric("Priority",priority); c2.metric("Causality",causality); c3.metric("Outcome",outcome)
                 with st.expander("Full Structured SAE Summary", expanded=True):
                     setting = "Hospital/Emergency" if any(w in tl for w in ["hospital","emergency","icu"]) else "Outpatient"
-                    timeline = "Expedited 7-day" if priority=="URGENT" else "Expedited 15-day" if priority=="STANDARD" else "Periodic 90-day"
+                    timeline = _timeline_urgent if priority=="URGENT" else "Expedited 15-day" if priority=="STANDARD" else "Periodic 90-day"
                     st.markdown(f"""| Field | Value |\n|---|---|\n| Document Type | SAE Case Narration |\n| Priority | {priority} |\n| Causality | {causality} |\n| Outcome | {outcome} |\n| Setting | {setting} |\n| Reporting Timeline | {timeline} |\n| Recommended Action | {"Escalate to DCGI immediately" if priority=="URGENT" else "Route to standard review queue"} |""")
                 st.download_button("⬇ Download SAE Summary", f"Priority:{priority}\nCausality:{causality}\nOutcome:{outcome}\nTimeline:{timeline}", file_name="sae_summary.txt")
+                import streamlit.components.v1 as _cv1_sae
+                _sae_pdf = f"""<!DOCTYPE html><html><head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>body{{font-family:system-ui,sans-serif;margin:0;padding:10px;background:#f8fafc;}}
+.pdf-btn{{cursor:pointer;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;border:none;background:#003087;color:white;}}
+.pdf-btn:hover{{background:#002060;}}
+.lbl{{font-size:11px;font-weight:700;color:#64748b;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em;}}</style>
+</head><body>
+<div class="lbl">PDF download</div>
+<button class="pdf-btn" onclick="genPDF()">&#x1F4C4; SAE Summary (PDF)</button>
+<script>
+function genPDF(){{
+  const {{jsPDF}}=window.jspdf; const doc=new jsPDF();
+  doc.setFillColor(0,48,135); doc.rect(0,0,210,18,'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(10); doc.setFont(undefined,'bold');
+  doc.text('Nirnay — SAE Case Narration Summary',10,7);
+  doc.setFontSize(8); doc.setFont(undefined,'normal');
+  doc.text('Generated: '+new Date().toLocaleString('en-IN'),10,13);
+  doc.setTextColor(0,0,0); doc.setFontSize(10);
+  const rows=[
+    ['Priority','{priority}'],['Causality','{causality}'],['Outcome','{outcome}'],
+    ['Setting','{setting}'],['Reporting Timeline','{timeline}'],
+    ['Recommended Action','{("Escalate to DCGI immediately" if priority=="URGENT" else "Route to standard review queue")}']
+  ];
+  doc.autoTable({{head:[['Field','Value']],body:rows,startY:22,
+    headStyles:{{fillColor:[0,48,135],textColor:255,fontStyle:'bold'}},
+    alternateRowStyles:{{fillColor:[240,244,248]}},styles:{{fontSize:9,cellPadding:3}},margin:{{left:10,right:10}}}});
+  doc.save('sae_summary.pdf');
+}}
+</script></body></html>"""
+                _cv1_sae.html(_sae_pdf, height=60)
 
             elif doc_type == "Application Checklist (SUGAM)":
                 lines=[l.strip() for l in content.split('\n') if l.strip()]
@@ -1017,9 +1090,46 @@ with t2:
                 c1,c2,c3,c4=st.columns(4)
                 c1.metric("Total",tot);c2.metric("Complete",comp);c3.metric("Incomplete",inc);c4.metric("Missing",miss)
                 st.progress(sc/100,text=f"Score: {sc}%")
+                st.markdown(f'<div style="font-size:11px;color:#64748b;margin:-8px 0 8px;">Scoring: Complete items / Total items × 100. ≥80% → Approve · 50–79% → Return · &lt;50% → Reject</div>', unsafe_allow_html=True)
                 cc="ok" if sc>=80 else "warn" if sc>=50 else "err"
                 st.markdown(f'<div class="rc {cc}"><b>Recommendation:</b> {rec}</div>',unsafe_allow_html=True)
+                # FIX D6: Extract actionable items and next steps
+                actions=[l for l in lines if any(w in l.lower() for w in ["action","follow up","submit","provide","upload","resubmit","correct","update","pending"])]
+                next_steps=[l for l in lines if any(w in l.lower() for w in ["next step","by","deadline","due","required by","to be submitted","must"])]
+                if actions:
+                    with st.expander("Actionable Items", expanded=True):
+                        for i,a in enumerate(actions[:10],1): st.markdown(f"{i}. {a}")
+                if next_steps:
+                    with st.expander("Next Steps", expanded=False):
+                        for i,n in enumerate(next_steps[:10],1): st.markdown(f"{i}. {n}")
                 st.download_button("⬇ Download",f"Score:{sc}%\n{rec}",file_name="checklist_summary.txt")
+                import streamlit.components.v1 as _cv1_sugam
+                _sugam_pdf = f"""<!DOCTYPE html><html><head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>body{{font-family:system-ui,sans-serif;margin:0;padding:10px;background:#f8fafc;}}
+.pdf-btn{{cursor:pointer;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;border:none;background:#003087;color:white;}}
+.pdf-btn:hover{{background:#002060;}}
+.lbl{{font-size:11px;font-weight:700;color:#64748b;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em;}}</style>
+</head><body>
+<div class="lbl">PDF download</div>
+<button class="pdf-btn" onclick="genPDF()">&#x1F4C4; Checklist Summary (PDF)</button>
+<script>
+function genPDF(){{
+  const {{jsPDF}}=window.jspdf; const doc=new jsPDF();
+  doc.setFillColor(0,48,135); doc.rect(0,0,210,18,'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(10); doc.setFont(undefined,'bold');
+  doc.text('Nirnay — Application Checklist Summary (SUGAM)',10,7);
+  doc.setFontSize(8); doc.setFont(undefined,'normal');
+  doc.text('Generated: '+new Date().toLocaleString('en-IN'),10,13);
+  doc.setTextColor(0,0,0);
+  const rows=[['Total Items','{tot}'],['Complete','{comp}'],['Incomplete','{inc}'],['Missing','{miss}'],['Score','{sc}%'],['Recommendation','{rec}']];
+  doc.autoTable({{head:[['Metric','Value']],body:rows,startY:22,
+    headStyles:{{fillColor:[0,48,135],textColor:255,fontStyle:'bold'}},
+    alternateRowStyles:{{fillColor:[240,244,248]}},styles:{{fontSize:9,cellPadding:3}},margin:{{left:10,right:10}}}});
+  doc.save('checklist_summary.pdf');
+}}
+</script></body></html>"""
+                _cv1_sugam.html(_sugam_pdf, height=60)
 
             else:
                 if audio_mode and not content.replace(f"[AUDIO: {sum_file.name if sum_file else ''}]","").replace("Paste transcript below if available.","").strip():
@@ -1029,9 +1139,12 @@ with t2:
                     dec,act,iss=[],[],[]
                     for l in lines:
                         ll=l.lower()
-                        if any(w in ll for w in ["decided","approved","resolved","agreed","concluded"]): dec.append(l.strip())
-                        elif any(w in ll for w in ["action","will","shall","owner","follow up","responsible"]): act.append(l.strip())
-                        elif any(w in ll for w in ["pending","unresolved","defer","tabled"]): iss.append(l.strip())
+                        if any(w in ll for w in ["decided","approved","resolved","agreed","concluded","confirmed","endorsed","accepted","signed off","ratified"]):
+                            dec.append(l.strip())
+                        elif any(w in ll for w in ["action","will","shall","owner","follow up","follow-up","responsible","to do","assigned to","by next","deadline","due by","task","must","required to"]):
+                            act.append(l.strip())
+                        elif any(w in ll for w in ["pending","unresolved","defer","deferred","tabled","carry forward","no decision","open item","outstanding","to be discussed","awaiting"]):
+                            iss.append(l.strip())
                     c1,c2,c3=st.columns(3)
                     c1.metric("Decisions",len(dec));c2.metric("Actions",len(act));c3.metric("Open Issues",len(iss))
                     with st.expander("Key Decisions",expanded=True):
@@ -1066,10 +1179,69 @@ with t2:
                                         st.markdown(f"— {p}")
                             fallback_txt = "\n".join([f"{s}:\n" + "\n".join(p) for s,p in sections.items() if p])
                             st.download_button("⬇ Download Summary", fallback_txt, file_name="meeting_summary.txt")
+                            import streamlit.components.v1 as _cv1_mtg_fb
+                            _mtg_fb_rows = [[s, "; ".join(p[:2])] for s,p in sections.items() if p]
+                            import json as _jfb
+                            _mtg_fb_pdf = f"""<!DOCTYPE html><html><head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<style>body{{font-family:system-ui,sans-serif;margin:0;padding:10px;background:#f8fafc;}}
+.pdf-btn{{cursor:pointer;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;border:none;background:#003087;color:white;}}
+.lbl{{font-size:11px;font-weight:700;color:#64748b;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em;}}</style>
+</head><body><div class="lbl">PDF download</div>
+<button class="pdf-btn" onclick="genPDF()">&#x1F4C4; Meeting Summary (PDF)</button>
+<script>
+const rows={_jfb.dumps(_mtg_fb_rows)};
+function genPDF(){{
+  const {{jsPDF}}=window.jspdf; const doc=new jsPDF();
+  doc.setFillColor(0,48,135); doc.rect(0,0,210,18,'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(10); doc.setFont(undefined,'bold');
+  doc.text('Nirnay — Meeting Summary',10,7);
+  doc.setFontSize(8); doc.setFont(undefined,'normal');
+  doc.text('Generated: '+new Date().toLocaleString('en-IN'),10,13);
+  doc.setTextColor(0,0,0);
+  doc.autoTable({{head:[['Section','Key Points']],body:rows,startY:22,
+    headStyles:{{fillColor:[0,48,135],textColor:255,fontStyle:'bold'}},
+    styles:{{fontSize:8,cellPadding:3}},columnStyles:{{0:{{cellWidth:50}}}},margin:{{left:10,right:10}}}});
+  doc.save('meeting_summary.pdf');
+}}
+</script></body></html>"""
+                            _cv1_mtg_fb.html(_mtg_fb_pdf, height=60)
                         else:
                             st.info("No structured content detected. Please paste transcript text after uploading audio.")
                     else:
                         st.download_button("⬇ Download Meeting Summary","\n".join(dec+act),file_name="meeting_summary.txt")
+                        import streamlit.components.v1 as _cv1_mtg
+                        import json as _jmtg
+                        _dec_rows = [[f"Decision {i+1}", d] for i,d in enumerate(dec[:10])]
+                        _act_rows = [[f"Action {i+1}", a] for i,a in enumerate(act[:10])]
+                        _iss_rows = [[f"Issue {i+1}", x] for i,x in enumerate(iss[:6])]
+                        _all_mtg_rows = _dec_rows + _act_rows + _iss_rows
+                        _mtg_pdf = f"""<!DOCTYPE html><html><head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<style>body{{font-family:system-ui,sans-serif;margin:0;padding:10px;background:#f8fafc;}}
+.pdf-btn{{cursor:pointer;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;border:none;background:#003087;color:white;}}
+.lbl{{font-size:11px;font-weight:700;color:#64748b;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em;}}</style>
+</head><body><div class="lbl">PDF download</div>
+<button class="pdf-btn" onclick="genPDF()">&#x1F4C4; Meeting Summary (PDF)</button>
+<script>
+const rows={_jmtg.dumps(_all_mtg_rows)};
+function genPDF(){{
+  const {{jsPDF}}=window.jspdf; const doc=new jsPDF();
+  doc.setFillColor(0,48,135); doc.rect(0,0,210,18,'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(10); doc.setFont(undefined,'bold');
+  doc.text('Nirnay — Meeting Summary',10,7);
+  doc.setFontSize(8); doc.setFont(undefined,'normal');
+  doc.text('Generated: '+new Date().toLocaleString('en-IN'),10,13);
+  doc.setTextColor(0,0,0);
+  doc.autoTable({{head:[['Type','Item']],body:rows,startY:22,
+    headStyles:{{fillColor:[0,48,135],textColor:255,fontStyle:'bold'}},
+    styles:{{fontSize:8,cellPadding:3}},columnStyles:{{0:{{cellWidth:35}}}},margin:{{left:10,right:10}}}});
+  doc.save('meeting_summary.pdf');
+}}
+</script></body></html>"""
+                        _cv1_mtg.html(_mtg_pdf, height=60)
 
 
 # ═══ FEATURE 3 — COMPLETENESS ════════════════════════════════════════════════
@@ -1078,7 +1250,7 @@ with t3:
     <div class="sec-hd">
       <div class="sec-ic ic-purple">✅</div>
       <div><h2>Completeness Assessment</h2>
-      <p>Upload application document · 20 mandatory fields · RAG status · Approve / Return / Reject recommendation</p></div>
+      <p>Upload application document · RAG status · Approve / Return / Reject recommendation</p></div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -1145,13 +1317,13 @@ with t3:
             st.progress(sc/100,text=f"Application completeness: {sc}%")
             _comp_risk = "Critical" if cm else "High" if sc < 60 else "Medium" if sc < 85 else "Low"
             _comp_action = (f"Reject — {len(cm)} critical field(s) missing: {', '.join(cm[:3])}{'...' if len(cm)>3 else ''}. Application cannot proceed." if cm
-                           else f"Return for completion — {missing} field(s) need attention before technical review."
+                           else f"Return for completion — {mis} field(s) need attention before technical review."
                            if sc < 85 else "Approve for technical review — all critical fields present.")
             ai_recommendation_card(
                 f"Application completeness: {sc}% · {rec}",
                 _comp_risk,
                 _comp_action,
-                f"Fields checked: 20 mandatory fields · Present: {pre} · Missing: {missing} · Incomplete: {inc}"
+                f"Fields checked: 20 mandatory fields · Present: {pre} · Missing: {mis} · Incomplete: {inc}"
             )
             st.markdown(f'<div class="rc {cc}"><b>Recommendation:</b> {rec}</div>',unsafe_allow_html=True)
             if cm: st.error(f"Critical missing: {', '.join(cm)}")
@@ -1166,6 +1338,46 @@ with t3:
                 st.dataframe(df.style.map(srag,subset=["RAG"]),use_container_width=True,hide_index=True)
                 st.markdown('</div>',unsafe_allow_html=True)
             st.download_button("⬇ Download Completeness Report",df.to_csv(index=False),file_name="completeness_report.csv",mime="text/csv")
+            import streamlit.components.v1 as _cv1_comp
+            import json as _jcomp
+            _comp_rows = [[r["Field"],r["Severity"],r["Status"],r["RAG"].replace("🟢","").replace("🟡","").replace("🔴","").strip()] for r in rows]
+            _comp_pdf = f"""<!DOCTYPE html><html><head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<style>body{{font-family:system-ui,sans-serif;margin:0;padding:10px;background:#f8fafc;}}
+.pdf-btn{{cursor:pointer;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;border:none;background:#003087;color:white;}}
+.lbl{{font-size:11px;font-weight:700;color:#64748b;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em;}}</style>
+</head><body><div class="lbl">PDF download</div>
+<button class="pdf-btn" onclick="genPDF()">&#x1F4C4; Completeness Report (PDF)</button>
+<script>
+const rows={_jcomp.dumps(_comp_rows)};
+const appId="{app_id or 'N/A'}"; const score="{sc}%"; const rec="{rec.replace(chr(9989),'').replace(chr(9888),'').replace(chr(10060),'').strip()}";
+function genPDF(){{
+  const {{jsPDF}}=window.jspdf; const doc=new jsPDF();
+  doc.setFillColor(0,48,135); doc.rect(0,0,210,18,'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(10); doc.setFont(undefined,'bold');
+  doc.text('Nirnay — Completeness Assessment Report',10,7);
+  doc.setFontSize(8); doc.setFont(undefined,'normal');
+  doc.text('Generated: '+new Date().toLocaleString('en-IN'),10,13);
+  doc.setTextColor(0,0,0); doc.setFontSize(9);
+  doc.text('Application ID: '+appId+'    Score: '+score+'    Recommendation: '+rec,10,24);
+  doc.autoTable({{
+    head:[['Field','Severity','Status','RAG']],body:rows,startY:30,
+    headStyles:{{fillColor:[0,48,135],textColor:255,fontStyle:'bold'}},
+    styles:{{fontSize:8,cellPadding:2}},
+    didParseCell:function(d){{
+      if(d.section==='body'&&d.column.index===3){{
+        if(d.cell.raw==='Green'){{d.cell.styles.fillColor=[220,252,231];d.cell.styles.textColor=[21,128,61];}}
+        else if(d.cell.raw==='Amber'){{d.cell.styles.fillColor=[254,249,195];d.cell.styles.textColor=[161,98,7];}}
+        else if(d.cell.raw==='Red'){{d.cell.styles.fillColor=[254,226,226];d.cell.styles.textColor=[185,28,28];}}
+      }}
+    }},
+    margin:{{left:10,right:10}}
+  }});
+  doc.save('completeness_report.pdf');
+}}
+</script></body></html>"""
+            _cv1_comp.html(_comp_pdf, height=60)
 
 
 # ═══ FEATURE 4 — CLASSIFICATION + DUPLICATE DETECTION ════════════════════════
@@ -1174,7 +1386,7 @@ with t4:
     <div class="sec-hd">
       <div class="sec-ic ic-amber">🏷️</div>
       <div><h2>SAE Classification &amp; Duplicate Detection</h2>
-      <p>Upload SAE · ICD-10 severity grading · Session-based duplicate detection across multiple reports</p></div>
+      <p>Upload SAE · Severity-based grading · Session-based duplicate detection across multiple reports</p></div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -1229,15 +1441,18 @@ with t4:
             st.markdown('<div class="rc warn">Please upload or paste an SAE report first.</div>',unsafe_allow_html=True)
         else:
             tl=content.lower()
-            if any(w in tl for w in ["died","fatal","death","mortality","deceased"]):
-                sev="DEATH"; sc_s="background:#fee2e2;color:#991b1b"; ps=1
-                rk=[w for w in ["died","fatal","death","mortality","deceased"] if w in tl]
-            elif any(w in tl for w in ["permanent disability","paralysis","blind","deaf","permanent impairment"]):
-                sev="DISABILITY"; sc_s="background:#ffedd5;color:#9a3412"; ps=2
-                rk=[w for w in ["permanent disability","paralysis","blind","deaf"] if w in tl]
-            elif any(w in tl for w in ["hospitalised","admitted","icu","inpatient","emergency","hospital"]):
-                sev="HOSPITALISATION"; sc_s="background:#fef9c3;color:#92400e"; ps=3
-                rk=[w for w in ["hospitalised","admitted","icu","inpatient","emergency","hospital"] if w in tl]
+            # FIX F4: Use stricter keyword matching — check negation context and priority order
+            # Build keyword evidence lists first, then decide severity
+            _death_kw    = [w for w in ["died","fatal outcome","patient died","death reported","deceased","mortality confirmed"] if w in tl]
+            _disab_kw    = [w for w in ["permanent disability","permanent impairment","paralysis","blindness","deafness","permanent damage"] if w in tl]
+            _hosp_kw     = [w for w in ["hospitalised","hospitalized","admitted","inpatient","icu","emergency admission","emergency department"] if w in tl]
+
+            if _death_kw:
+                sev="DEATH"; sc_s="background:#fee2e2;color:#991b1b"; ps=1; rk=_death_kw
+            elif _disab_kw:
+                sev="DISABILITY"; sc_s="background:#ffedd5;color:#9a3412"; ps=2; rk=_disab_kw
+            elif _hosp_kw:
+                sev="HOSPITALISATION"; sc_s="background:#fef9c3;color:#92400e"; ps=3; rk=_hosp_kw
             else:
                 sev="OTHERS"; sc_s="background:#dbeafe;color:#1e40af"; ps=4
                 rk=["no critical keywords — default classification"]
@@ -1268,9 +1483,10 @@ with t4:
             # Duplicate detection across session files
             st.markdown("**Duplicate Detection across session files**")
             def get_ids(t):
-                ids=set(re.findall(r'\b(?:PT|SUBJ|LH|MH|DL)[-]\w+[-]\w+\b',t))
+                # FIX G3: More specific patterns to reduce false positives
+                ids=set(re.findall(r'\b(?:PT|SUBJ|LH|MH|DL)[-][A-Z0-9]{3,}[-][A-Z0-9]{3,}\b',t))
                 drugs=set(re.findall(r'\b[A-Z][a-z]+(?:vir|mab|nib|tide|pril|sartan|statin|mycin|cillin)\b',t))
-                drugs|=set(re.findall(r'\b[A-Z]{4,}[-]?\d*\s*mg\b',t))
+                drugs|=set(re.findall(r'\b[A-Z]{4,}[-]?\d+\s*mg\b',t))
                 return ids,drugs
 
             id1,dr1=get_ids(content); dup_found=False
@@ -1280,7 +1496,9 @@ with t4:
                     if v["text"].strip()==content.strip(): continue
                     id2,dr2=get_ids(v["text"])
                     shared_ids=id1&id2; shared_drugs=dr1&dr2
-                    if shared_ids or shared_drugs:
+                    # FIX G3: Flag duplicate only if IDs overlap, or both IDs AND drugs overlap
+                    is_dup = bool(shared_ids) or (bool(shared_ids) and bool(shared_drugs))
+                    if is_dup:
                         detail=[]
                         if shared_ids: detail.append(f"Patient IDs: {shared_ids}")
                         if shared_drugs: detail.append(f"Drugs: {shared_drugs}")
@@ -1293,6 +1511,36 @@ with t4:
 
             report=f"Severity:{sev}\nConfidence:{conf}\nKeywords:{', '.join(rk)}\nPriority:{ps}/4\nICD-10:{icd[sev]}\nTimeline:{rpt[sev]}"
             st.download_button("⬇ Download Classification Report",report,file_name="classification_report.txt")
+            import streamlit.components.v1 as _cv1_cls
+            import json as _jcls
+            _cls_rows=[["Severity",sev],["Confidence",conf],["Priority Queue",f"{ps} / 4"],
+                       ["ICD-10 Reference",icd[sev]],["Reporting Timeline",rpt[sev]],
+                       ["Keywords Detected",", ".join(rk)]]
+            _cls_pdf=f"""<!DOCTYPE html><html><head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<style>body{{font-family:system-ui,sans-serif;margin:0;padding:10px;background:#f8fafc;}}
+.pdf-btn{{cursor:pointer;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;border:none;background:#003087;color:white;}}
+.lbl{{font-size:11px;font-weight:700;color:#64748b;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em;}}</style>
+</head><body><div class="lbl">PDF download</div>
+<button class="pdf-btn" onclick="genPDF()">&#x1F4C4; Classification Report (PDF)</button>
+<script>
+const rows={_jcls.dumps(_cls_rows)};
+function genPDF(){{
+  const {{jsPDF}}=window.jspdf; const doc=new jsPDF();
+  doc.setFillColor(0,48,135); doc.rect(0,0,210,18,'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(10); doc.setFont(undefined,'bold');
+  doc.text('Nirnay — SAE Classification Report',10,7);
+  doc.setFontSize(8); doc.setFont(undefined,'normal');
+  doc.text('Generated: '+new Date().toLocaleString('en-IN'),10,13);
+  doc.setTextColor(0,0,0);
+  doc.autoTable({{head:[['Field','Value']],body:rows,startY:22,
+    headStyles:{{fillColor:[0,48,135],textColor:255,fontStyle:'bold'}},
+    alternateRowStyles:{{fillColor:[240,244,248]}},styles:{{fontSize:9,cellPadding:3}},margin:{{left:10,right:10}}}});
+  doc.save('classification_report.pdf');
+}}
+</script></body></html>"""
+            _cv1_cls.html(_cls_pdf, height=60)
 
 
 # ═══ FEATURE 5 — COMPARISON ══════════════════════════════════════════════════
@@ -1396,6 +1644,48 @@ with t5:
                     st.markdown('</div>',unsafe_allow_html=True)
                     st.caption("🟢 Added · 🔴 Removed · 🟡 Changed (Substantive)")
                 st.download_button("⬇ Download Report",df.to_csv(index=False),file_name="comparison_report.csv",mime="text/csv")
+                import streamlit.components.v1 as _cv1_cmp
+                import json as _jcmp
+                # Truncate cell text for PDF so it doesn't overflow
+                _cmp_rows = [[c["Type"], c["Original"][:80], c["New"][:80], c["Substantive"]] for c in changes[:50]]
+                _cmp_pdf=f"""<!DOCTYPE html><html><head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<style>body{{font-family:system-ui,sans-serif;margin:0;padding:10px;background:#f8fafc;}}
+.pdf-btn{{cursor:pointer;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;border:none;background:#003087;color:white;}}
+.lbl{{font-size:11px;font-weight:700;color:#64748b;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em;}}</style>
+</head><body><div class="lbl">PDF download</div>
+<button class="pdf-btn" onclick="genPDF()">&#x1F4C4; Comparison Report (PDF)</button>
+<script>
+const rows={_jcmp.dumps(_cmp_rows)};
+const total={len(changes)}; const substantive={sc};
+function genPDF(){{
+  const {{jsPDF}}=window.jspdf; const doc=new jsPDF('l','mm','a4');
+  doc.setFillColor(0,48,135); doc.rect(0,0,297,18,'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(10); doc.setFont(undefined,'bold');
+  doc.text('Nirnay — Document Comparison Report',10,7);
+  doc.setFontSize(8); doc.setFont(undefined,'normal');
+  doc.text('Generated: '+new Date().toLocaleString('en-IN'),10,13);
+  doc.setTextColor(0,0,0); doc.setFontSize(9);
+  doc.text('Total changes: '+total+'    Substantive: '+substantive+'    Administrative: '+(total-substantive),10,24);
+  doc.autoTable({{
+    head:[['Type','Original','New','Substantive']],body:rows,startY:30,
+    headStyles:{{fillColor:[0,48,135],textColor:255,fontStyle:'bold'}},
+    styles:{{fontSize:7,cellPadding:2,overflow:'linebreak'}},
+    columnStyles:{{0:{{cellWidth:22}},1:{{cellWidth:105}},2:{{cellWidth:105}},3:{{cellWidth:22}}}},
+    didParseCell:function(d){{
+      if(d.section==='body'){{
+        if(d.row.raw[0]==='ADDED')d.cell.styles.fillColor=[220,252,231];
+        else if(d.row.raw[0]==='REMOVED')d.cell.styles.fillColor=[254,226,226];
+        else if(d.row.raw[3]==='Yes')d.cell.styles.fillColor=[254,249,195];
+      }}
+    }},
+    margin:{{left:10,right:10}}
+  }});
+  doc.save('comparison_report.pdf');
+}}
+</script></body></html>"""
+                _cv1_cmp.html(_cmp_pdf, height=60)
 
 
 # ═══ FEATURE 6 — INSPECTION REPORT ══════════════════════════════════════════
@@ -1421,17 +1711,41 @@ with t6:
     with col1: run_insp=st.button("📋 Generate Report",type="primary",use_container_width=True)
 
     if run_insp and obs.strip():
-        obs_list=[o.strip() for o in obs.splitlines() if o.strip()]
-        CK=["no record","falsified","patient safety","data integrity","unaccounted","fraud","fabricat"]
-        MK=["incomplete","not documented","protocol deviation","untrained","not signed","not dated","expired"]
+        # FIX H4: Filter out template instructions, bracketed placeholders, and empty lines
+        _raw_lines = [o.strip() for o in obs.splitlines() if o.strip()]
+        _placeholder_patterns = re.compile(
+            r'^\[.*\]$|^<.*>$|^Note:|^Ref:|^Reference:|^Template|^Example|^Instructions?:',
+            re.I
+        )
+        obs_list = [o for o in _raw_lines if not _placeholder_patterns.match(o) and len(o) > 5]
+
+        # FIX H3: Add SAE delay / reporting violation keywords to Critical
+        CK=["no record","falsified","patient safety","data integrity","unaccounted","fraud","fabricat",
+            "sae delay","delayed sae","sae not reported","unreported sae","reporting violation",
+            "not reported within","failed to report","safety reporting","failure to notify"]
+        MK=["incomplete","not documented","protocol deviation","untrained","not signed","not dated","expired","missing signature"]
+
+        # FIX H6: NDCT Rules 2019 regulatory references by severity
+        _reg_ref = {
+            "Critical": "NDCT Rules 2019, Rule 26 (SAE Reporting) / Schedule Y, Para 4.4 (Data Integrity)",
+            "Major":    "NDCT Rules 2019, Rule 21 (GCP Compliance) / Schedule Y, Para 4.3 (Documentation)",
+            "Minor":    "NDCT Rules 2019, Rule 22 (Site Standards) / Schedule Y, Para 4.2 (Labelling)",
+        }
+
         rows=[]
         for i,ob in enumerate(obs_list,1):
             ol=ob.lower()
-            if any(k in ol for k in CK): risk="Critical";dl="15 days";ca="Immediate CAPA. Site may be suspended."
-            elif any(k in ol for k in MK): risk="Major";dl="30 days";ca="CAPA plan within 30 days."
-            else: risk="Minor";dl="60 days";ca="Document in site log."
-            formal=f"During inspection on {insp_date.strftime('%d %B %Y')}, it was observed that {ob.lower().rstrip('.')}. This is a {risk.lower()} GCP deviation."
-            rows.append({"Obs":f"OBS-{i:03d}","Raw":ob,"Formal Finding":formal,"Risk":risk,"Corrective Action":ca,"Deadline":dl})
+            if any(k in ol for k in CK):
+                risk="Critical"; dl="15 days"; ca="Immediate CAPA. Site may be suspended."
+            elif any(k in ol for k in MK):
+                risk="Major"; dl="30 days"; ca="CAPA plan within 30 days."
+            else:
+                risk="Minor"; dl="60 days"; ca="Document in site log."
+            # FIX H5: Proper sentence-case formal finding — not raw lowercase duplication
+            _ob_sentence = ob.rstrip('.')
+            _ob_sentence = _ob_sentence[0].upper() + _ob_sentence[1:] if _ob_sentence else _ob_sentence
+            formal=f"During the inspection conducted on {insp_date.strftime('%d %B %Y')} at {insp_site or 'the site'}, a {risk.lower()}-grade GCP deviation was identified: {_ob_sentence}. This finding requires corrective action in accordance with {_reg_ref[risk]}."
+            rows.append({"Obs":f"OBS-{i:03d}","Raw":ob,"Formal Finding":formal,"Risk":risk,"Corrective Action":ca,"Deadline":dl,"Regulatory Reference":_reg_ref[risk]})
         cc_n=sum(1 for r in rows if r["Risk"]=="Critical")
         mc_n=sum(1 for r in rows if r["Risk"]=="Major")
         mn_n=sum(1 for r in rows if r["Risk"]=="Minor")
@@ -1473,11 +1787,11 @@ Inspector       : {insp_name or "[Inspector name]"}
 {_sep}
 
 SECTION 2: SUMMARY
-Total Issues    : {len(rows)}
-Critical        : {cc_n}
-Major           : {mc_n}
-Minor           : {mn_n}
-Overall Risk    : {"HIGH" if cc_n>0 else "MEDIUM" if mc_n>0 else "LOW"}
+Total Observations: {len(rows)}
+Critical          : {cc_n}
+Major             : {mc_n}
+Minor             : {mn_n}
+Overall Risk      : {"HIGH" if cc_n>0 else "MEDIUM" if mc_n>0 else "LOW"}
 
 {_sep}
 
@@ -1489,7 +1803,7 @@ SECTION 3: FINDINGS TABLE
 Observation         : {r["Raw"]}
 Formal Finding      : {r["Formal Finding"]}
 Severity            : {r["Risk"]}
-Regulatory Reference: CDSCO Schedule Y / GCP Guidelines ICH E6
+Regulatory Reference: {r["Regulatory Reference"]}
 Recommendation      : {r["Corrective Action"]}
 Deadline            : {r["Deadline"]}
 {_sep2}
@@ -1514,9 +1828,10 @@ Overall Site Risk: {"HIGH — immediate action required" if cc_n>0 else "MEDIUM 
 
 SECTION 7: AUDIT TRAIL (AI FLAGGING RATIONALE)
 This report was generated by Nirnay AI (CDSCO AI Hackathon 2026, Stage 1).
-Critical flags: keywords matching data integrity, patient safety, or falsification concerns.
-Major flags: incomplete documentation, protocol deviations, expired materials.
+Critical flags: keywords matching data integrity, patient safety, SAE reporting violations, or falsification.
+Major flags: incomplete documentation, protocol deviations, missing signatures, expired materials.
 Minor flags: administrative or labelling issues not affecting patient safety.
+Regulatory framework: NDCT Rules 2019, Schedule Y, ICMR GCP Guidelines.
 
 {_sep}
 Inspector Signature: ___________________________
@@ -1524,6 +1839,57 @@ Date: {datetime.date.today()}
 Generated by: Nirnay — CDSCO Regulatory Intelligence Platform
 """
         st.download_button("⬇ Download Inspection Report (TXT)",full,file_name=f"inspection_report_{insp_date}.txt",mime="text/plain")
+        import streamlit.components.v1 as _cv1_insp
+        import json as _jinsp
+        _insp_table_rows = [[r["Obs"],r["Raw"][:60],r["Risk"],r["Regulatory Reference"][:40],r["Corrective Action"],r["Deadline"]] for r in rows]
+        _insp_pdf=f"""<!DOCTYPE html><html><head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<style>body{{font-family:system-ui,sans-serif;margin:0;padding:10px;background:#f8fafc;}}
+.pdf-btn{{cursor:pointer;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;border:none;background:#003087;color:white;}}
+.lbl{{font-size:11px;font-weight:700;color:#64748b;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em;}}</style>
+</head><body><div class="lbl">PDF download</div>
+<button class="pdf-btn" onclick="genPDF()">&#x1F4C4; Inspection Report (PDF)</button>
+<script>
+const rows={_jinsp.dumps(_insp_table_rows)};
+const site="{insp_site or '[Site]'}"; const siteNo="{insp_sno or '[Site No.]'}";
+const inspector="{insp_name or '[Inspector]'}"; const idate="{insp_date.strftime('%d %B %Y')}";
+const ccN={cc_n}; const mcN={mc_n}; const mnN={mn_n};
+const risk=ccN>0?'HIGH':mcN>0?'MEDIUM':'LOW';
+function genPDF(){{
+  const {{jsPDF}}=window.jspdf; const doc=new jsPDF('l','mm','a4');
+  doc.setFillColor(0,48,135); doc.rect(0,0,297,18,'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(11); doc.setFont(undefined,'bold');
+  doc.text('CDSCO GCP SITE INSPECTION REPORT',10,7);
+  doc.setFontSize(8); doc.setFont(undefined,'normal');
+  doc.text('Generated: '+new Date().toLocaleString('en-IN'),200,13);
+  doc.setTextColor(0,0,0); doc.setFontSize(9);
+  doc.text('Site: '+site+'   Site No: '+siteNo+'   Inspector: '+inspector+'   Date: '+idate,10,24);
+  doc.text('SECTION 2: SUMMARY — Critical: '+ccN+'   Major: '+mcN+'   Minor: '+mnN+'   Overall Risk: '+risk,10,31);
+  doc.autoTable({{
+    head:[['Obs','Observation','Risk','Regulatory Reference','Corrective Action','Deadline']],
+    body:rows,startY:36,
+    headStyles:{{fillColor:[0,48,135],textColor:255,fontStyle:'bold',fontSize:7}},
+    styles:{{fontSize:7,cellPadding:2,overflow:'linebreak'}},
+    columnStyles:{{0:{{cellWidth:16}},1:{{cellWidth:80}},2:{{cellWidth:18}},3:{{cellWidth:80}},4:{{cellWidth:60}},5:{{cellWidth:20}}}},
+    didParseCell:function(d){{
+      if(d.section==='body'&&d.column.index===2){{
+        if(d.cell.raw==='Critical'){{d.cell.styles.fillColor=[254,226,226];d.cell.styles.textColor=[153,27,27];d.cell.styles.fontStyle='bold';}}
+        else if(d.cell.raw==='Major'){{d.cell.styles.fillColor=[254,249,195];d.cell.styles.textColor=[146,64,14];d.cell.styles.fontStyle='bold';}}
+        else{{d.cell.styles.fillColor=[220,252,231];d.cell.styles.textColor=[22,101,52];}}
+      }}
+    }},
+    margin:{{left:10,right:10}}
+  }});
+  const finalY=doc.lastAutoTable.finalY+8;
+  doc.setFontSize(8); doc.setFont(undefined,'bold');
+  doc.text('SECTION 6: RISK LEVEL — Overall Site Risk: '+risk+(risk==='HIGH'?' — Immediate action required':risk==='MEDIUM'?' — Corrective action required':' — Routine monitoring'),10,finalY);
+  doc.setFontSize(7); doc.setFont(undefined,'normal');
+  doc.text('Generated by Nirnay AI — CDSCO Hackathon 2026. Regulatory framework: NDCT Rules 2019, Schedule Y, ICMR GCP Guidelines.',10,finalY+6);
+  doc.save('inspection_report_{insp_date}.pdf');
+}}
+</script></body></html>"""
+        _cv1_insp.html(_insp_pdf, height=60)
     elif run_insp:
         st.markdown('<div class="rc warn">Please enter at least one observation.</div>',unsafe_allow_html=True)
 
@@ -1532,11 +1898,9 @@ st.markdown("""
 <div style="margin-top:32px;border-top:1px solid #e2e8f0;padding:10px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
   <span style="font-size:9px;font-weight:600;color:#94a3b8;">&#10003; DPDP Act 2023</span>
   <span style="color:#e2e8f0;">·</span>
-  <span style="font-size:9px;font-weight:600;color:#94a3b8;">&#10003; CDSCO Schedule Y</span>
-  <span style="color:#e2e8f0;">·</span>
-  <span style="font-size:9px;font-weight:600;color:#94a3b8;">&#10003; ICMR Guidelines 2017</span>
-  <span style="color:#e2e8f0;">·</span>
   <span style="font-size:9px;font-weight:600;color:#94a3b8;">&#10003; NDCT Rules 2019</span>
+  <span style="color:#e2e8f0;">·</span>
+  <span style="font-size:9px;font-weight:600;color:#94a3b8;">&#10003; ICMR Guidelines</span>
   <span style="color:#e2e8f0;">·</span>
   <span style="font-size:9px;font-weight:600;color:#94a3b8;">&#10003; MeitY AI Ethics</span>
   <span style="margin-left:auto;font-size:9px;color:#cbd5e1;">&#169; 2026 Nirnay &mdash; Built for IndiaAI/CDSCO Hackathon</span>

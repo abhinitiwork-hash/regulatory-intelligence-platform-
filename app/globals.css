@@ -1,0 +1,125 @@
+@import "tailwindcss";
+
+:root {
+  --nirnay-navy: #071e3d;
+  --nirnay-blue: #0b3f75;
+  --nirnay-cyan: #18a6b8;
+  --nirnay-ice: #eef8fc;
+  --nirnay-white: #ffffff;
+  --nirnay-graphite: #1e2a36;
+  --nirnay-slate: #5c6b7a;
+  --nirnay-amber: #f5a623;
+  --nirnay-red: #c62828;
+  --nirnay-green: #2e7d32;
+}
+
+@theme inline {
+  --font-sans: "IBM Plex Sans", "Aptos", "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", "Consolas", monospace;
+  --color-nirnay-navy: var(--nirnay-navy);
+  --color-nirnay-blue: var(--nirnay-blue);
+  --color-nirnay-cyan: var(--nirnay-cyan);
+  --color-nirnay-ice: var(--nirnay-ice);
+  --color-nirnay-white: var(--nirnay-white);
+  --color-nirnay-graphite: var(--nirnay-graphite);
+  --color-nirnay-slate: var(--nirnay-slate);
+  --color-nirnay-amber: var(--nirnay-amber);
+  --color-nirnay-red: var(--nirnay-red);
+  --color-nirnay-green: var(--nirnay-green);
+}
+
+@layer base {
+  * {
+    @apply border-transparent;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply min-h-screen bg-nirnay-ice font-sans text-nirnay-graphite antialiased;
+    background:
+      radial-gradient(circle at top left, rgba(24, 166, 184, 0.12), transparent 26%),
+      radial-gradient(circle at top right, rgba(11, 63, 117, 0.1), transparent 20%),
+      linear-gradient(180deg, #eef8fc 0%, #e7f2f7 100%);
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  ::selection {
+    background: rgba(24, 166, 184, 0.18);
+  }
+}
+
+@layer components {
+  .surface {
+    @apply rounded-3xl border border-[rgba(11,63,117,0.12)] bg-white/95 shadow-[0_18px_40px_rgba(7,30,61,0.08)];
+  }
+
+  .surface-subtle {
+    @apply rounded-2xl border border-[rgba(11,63,117,0.1)] bg-white/90 shadow-[0_12px_28px_rgba(7,30,61,0.06)];
+  }
+
+  .surface-dark {
+    @apply rounded-[2rem] border border-white/10 bg-[linear-gradient(140deg,#071E3D_0%,#0B3F75_72%,#12598C_100%)] text-white shadow-[0_24px_50px_rgba(7,30,61,0.18)];
+  }
+
+  .page-shell {
+    @apply mx-auto w-full max-w-[1600px] px-4 py-5 md:px-6 lg:px-8;
+  }
+
+  .page-grid {
+    @apply grid gap-5;
+  }
+
+  .eyebrow {
+    @apply font-mono text-[11px] uppercase tracking-[0.18em] text-nirnay-slate;
+  }
+
+  .eyebrow-light {
+    @apply font-mono text-[11px] uppercase tracking-[0.18em] text-white/60;
+  }
+
+  .action-button {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-transparent bg-[linear-gradient(135deg,#0B3F75_0%,#10508D_100%)] px-5 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(11,63,117,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_26px_rgba(11,63,117,0.24)] disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none;
+  }
+
+  .ghost-button {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-[rgba(11,63,117,0.12)] bg-white/95 px-5 text-sm font-semibold text-nirnay-graphite transition hover:-translate-y-0.5 hover:border-[rgba(24,166,184,0.25)] hover:bg-white disabled:cursor-not-allowed disabled:opacity-45;
+  }
+
+  .metric-chip {
+    @apply inline-flex items-center gap-2 rounded-full border border-[rgba(11,63,117,0.12)] bg-white/90 px-3 py-1.5 text-xs font-medium text-nirnay-slate;
+  }
+
+  .status-pill {
+    @apply inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em];
+  }
+
+  .field-shell {
+    @apply rounded-2xl border border-[rgba(11,63,117,0.14)] bg-white/95 px-4 py-3 text-sm text-nirnay-graphite shadow-[0_8px_20px_rgba(7,30,61,0.04)] outline-none transition focus:border-[rgba(24,166,184,0.34)] focus:ring-2 focus:ring-[rgba(24,166,184,0.12)];
+  }
+
+  .table-shell {
+    @apply overflow-hidden rounded-3xl border border-[rgba(11,63,117,0.12)] bg-white/95 shadow-[0_18px_40px_rgba(7,30,61,0.06)];
+  }
+
+  .sticky-header {
+    @apply sticky top-0 z-20 rounded-3xl border border-[rgba(11,63,117,0.1)] bg-white/80 backdrop-blur-xl;
+  }
+
+  .scroll-fade {
+    mask-image: linear-gradient(to bottom, transparent 0, black 30px, black calc(100% - 30px), transparent 100%);
+  }
+}
